@@ -1,155 +1,109 @@
-import React, { useState } from 'react';
+// src/pages/Settings.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User,
-  Shield,
-  Bell,
-  Lock,
-  CreditCard,
-  Sliders,
-  Camera,
-  CheckCircle2,
-  Mail,
-  MapPin, 
-  Phone,
-  FileText,
-  Globe,
+  User, Shield, Bell, Lock, CreditCard, Sliders,
+  CheckCircle2, Mail, Globe, Settings as SettingsIcon,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 const translations = {
   English: {
-    settingsTitle: 'Account Settings',
-    settingsDesc: 'Manage your account settings and set preferences.',
-    accountInfo: 'Account Information',
-    accountDesc: 'Update your personal details',
-    security: 'Security & Password',
-    securityDesc: 'Password and login protection',
-    notifications: 'Notifications',
-    notificationsDesc: 'Manage alerts and reminders',
-    privacy: 'Privacy & Data',
-    privacyDesc: 'Control your profile visibility',
-    payment: 'Payment Methods',
-    paymentDesc: 'Manage your saved cards',
-    preferences: 'Preferences',
-    preferencesDesc: 'Language and regional settings',
-    profileInfo: 'Profile Information',
-    profileDesc: 'Update your photo and personal details here.',
-    savedSuccessfully: 'Saved successfully',
-    uploadPhoto: 'Upload New Photo',
-    fullName: 'Full Name',
-    location: 'Location',
-    email: 'Email Address',
-    phone: 'Phone Number',
-    bio: 'Bio',
-    saveChanges: 'Save Changes',
-    currentPassword: 'Current Password',
-    newPassword: 'New Password',
-    updatePassword: 'Update Password',
-    emailNotif: 'Email Notifications',
-    emailNotifDesc: 'Receive emails about your activity and ticket purchases.',
-    publicProfile: 'Public Profile',
-    publicProfileDesc: 'Allow other users to find your profile.',
-    languageLabel: 'Language',
+    settingsTitle: 'Account Settings', settingsDesc: 'Manage your account settings and set preferences.',
+    accountInfo: 'Account Information', accountDesc: 'Update your personal details',
+    security: 'Security & Password', securityDesc: 'Password and login protection',
+    notifications: 'Notifications', notificationsDesc: 'Manage alerts and reminders',
+    privacy: 'Privacy & Data', privacyDesc: 'Control your profile visibility',
+    payment: 'Payment Methods', paymentDesc: 'Manage your saved cards',
+    preferences: 'Preferences', preferencesDesc: 'Language and regional settings',
+    profileInfo: 'Profile Information', profileDesc: 'Update your personal details here.',
+    savedSuccessfully: 'Saved successfully', fullName: 'Full Name', email: 'Email Address',
+    saveChanges: 'Save Changes', newPassword: 'New Password', confirmPassword: 'Confirm New Password',
+    updatePassword: 'Update Password', passwordUpdated: 'Password updated', mismatch: 'Passwords do not match',
+    publicProfile: 'Public Profile', publicProfileDesc: 'Allow other users to find your profile.',
+    languageLabel: 'Language', comingSoon: 'Coming soon — not available yet on the backend.',
   },
   'العربية (Arabic)': {
-    settingsTitle: 'إعدادات الحساب',
-    settingsDesc: 'إدارة إعدادات حسابك وتفضيلاتك.',
-    accountInfo: 'معلومات الحساب',
-    accountDesc: 'تحديث تفاصيلك الشخصية',
-    security: 'الأمان وكلمة المرور',
-    securityDesc: 'كلمة المرور وحماية الدخول',
-    notifications: 'الإشعارات',
-    notificationsDesc: 'إدارة التنبيهات والتذكيرات',
-    privacy: 'الخصوصية والبيانات',
-    privacyDesc: 'التحكم في ظهور ملفك الشخصي',
-    payment: 'وسائل الدفع',
-    paymentDesc: 'إدارة البطاقات المحفوظة',
-    preferences: 'التفضيلات',
-    preferencesDesc: 'اللغة والإعدادات الإقليمية',
-    profileInfo: 'معلومات الملف الشخصي',
-    profileDesc: 'قم بتحديث صورتك وتفاصيلك الشخصية هنا.',
-    savedSuccessfully: 'تم الحفظ بنجاح',
-    uploadPhoto: 'رفع صورة جديدة',
-    fullName: 'الاسم الكامل',
-    location: 'الموقع',
-    email: 'البريد الإلكتروني',
-    phone: 'رقم الهاتف',
-    bio: 'النبذة التعريفية',
-    saveChanges: 'حفظ التغييرات',
-    currentPassword: 'كلمة المرور الحالية',
-    newPassword: 'كلمة المرور الجديدة',
-    updatePassword: 'تحديث كلمة المرور',
-    emailNotif: 'إشعارات البريد الإلكتروني',
-    emailNotifDesc: 'تلقي رسائل حول نشاطك وحجز التذاكر.',
-    publicProfile: 'ملف شخصي عام',
-    publicProfileDesc: 'السماح للمستخدمين الآخرين بالعثور على ملفك الشخصي.',
-    languageLabel: 'اللغة',
+    settingsTitle: 'إعدادات الحساب', settingsDesc: 'إدارة إعدادات حسابك وتفضيلاتك.',
+    accountInfo: 'معلومات الحساب', accountDesc: 'تحديث تفاصيلك الشخصية',
+    security: 'الأمان وكلمة المرور', securityDesc: 'كلمة المرور وحماية الدخول',
+    notifications: 'الإشعارات', notificationsDesc: 'إدارة التنبيهات والتذكيرات',
+    privacy: 'الخصوصية والبيانات', privacyDesc: 'التحكم في ظهور ملفك الشخصي',
+    payment: 'وسائل الدفع', paymentDesc: 'إدارة البطاقات المحفوظة',
+    preferences: 'التفضيلات', preferencesDesc: 'اللغة والإعدادات الإقليمية',
+    profileInfo: 'معلومات الملف الشخصي', profileDesc: 'قم بتحديث تفاصيلك الشخصية هنا.',
+    savedSuccessfully: 'تم الحفظ بنجاح', fullName: 'الاسم الكامل', email: 'البريد الإلكتروني',
+    saveChanges: 'حفظ التغييرات', newPassword: 'كلمة المرور الجديدة', confirmPassword: 'تأكيد كلمة المرور',
+    updatePassword: 'تحديث كلمة المرور', passwordUpdated: 'تم تحديث كلمة المرور', mismatch: 'كلمتا المرور غير متطابقتين',
+    publicProfile: 'ملف شخصي عام', publicProfileDesc: 'السماح للمستخدمين الآخرين بالعثور على ملفك الشخصي.',
+    languageLabel: 'اللغة', comingSoon: 'قريباً — غير متاح حالياً في الخادم.',
   },
   'Kurdish (کوردی)': {
-    settingsTitle: 'ڕێکخستنەکانی هەژمار',
-    settingsDesc: 'ڕێکخستنەکانی هەژمارەکەت و ئارەزووەکانت بەڕێوەببە.',
-    accountInfo: 'زانیاری هەژمار',
-    accountDesc: 'وردەکارییە کەسییەکانت نوێبکەرەوە',
-    security: 'ئاسایش و وشەی نهێنی',
-    securityDesc: 'وشەی نهێنی و پاراستنی چوونەژوورەوە',
-    notifications: 'ئاگادارییەکان',
-    notificationsDesc: 'ئاگادارییەکان بەڕێوەببە',
-    privacy: 'تایبەتمەندی و داتا',
-    privacyDesc: 'کۆنتڕۆڵی دەرکەوتنی پڕۆفایلی خۆت بکە',
-    payment: 'شێوازەکانی پارەدان',
-    paymentDesc: 'کارتە پاشەکەوتکراوەکانت بەڕێوەببە',
-    preferences: 'ئارەزووەکان',
-    preferencesDesc: 'زمان و ڕێکخستنە ناوچەییەکان',
-    profileInfo: 'زانیاری پڕۆفایل',
-    profileDesc: 'وێنە و وردەکارییە کەسییەکانت لێرە نوێبکەرەوە.',
-    savedSuccessfully: 'بە سەرکەوتوویی پاشەکەوتکرا',
-    uploadPhoto: 'بارکردنی وێنەی نوێ',
-    fullName: 'ناوی تەواو',
-    location: 'شوێن',
-    email: 'پۆستی ئەلیکترۆنی',
-    phone: 'ژمارەی تەلەفۆن',
-    bio: 'کۆمێنت / Bio',
-    saveChanges: 'پاشەکەوتکردنی گۆڕانکارییەکان',
-    currentPassword: 'وشەی نهێنی ئێستا',
-    newPassword: 'وشەی نهێنی نوێ',
-    updatePassword: 'نوێکردنەوەی وشەی نهێنی',
-    emailNotif: 'ئاگادارییەکانی پۆستی ئەلیکترۆنی',
-    emailNotifDesc: 'ئیمەیڵ وەرگرە دەربارەی چالاکی و کڕینی بلیتەکانت.',
-    publicProfile: 'پڕۆفایلی گشتی',
-    publicProfileDesc: 'ڕێگە بدە بە بەکارهێنەرانی تر پڕۆفایلەکەت بدۆزنەوە.',
-    languageLabel: 'زمان',
+    settingsTitle: 'ڕێکخستنەکانی هەژمار', settingsDesc: 'ڕێکخستنەکانی هەژمارەکەت و ئارەزووەکانت بەڕێوەببە.',
+    accountInfo: 'زانیاری هەژمار', accountDesc: 'وردەکارییە کەسییەکانت نوێبکەرەوە',
+    security: 'ئاسایش و وشەی نهێنی', securityDesc: 'وشەی نهێنی و پاراستنی چوونەژوورەوە',
+    notifications: 'ئاگادارییەکان', notificationsDesc: 'ئاگادارییەکان بەڕێوەببە',
+    privacy: 'تایبەتمەندی و داتا', privacyDesc: 'کۆنتڕۆڵی دەرکەوتنی پڕۆفایلی خۆت بکە',
+    payment: 'شێوازەکانی پارەدان', paymentDesc: 'کارتە پاشەکەوتکراوەکانت بەڕێوەببە',
+    preferences: 'ئارەزووەکان', preferencesDesc: 'زمان و ڕێکخستنە ناوچەییەکان',
+    profileInfo: 'زانیاری پڕۆفایل', profileDesc: 'وردەکارییە کەسییەکانت لێرە نوێبکەرەوە.',
+    savedSuccessfully: 'بە سەرکەوتوویی پاشەکەوتکرا', fullName: 'ناوی تەواو', email: 'پۆستی ئەلیکترۆنی',
+    saveChanges: 'پاشەکەوتکردنی گۆڕانکارییەکان', newPassword: 'وشەی نهێنی نوێ', confirmPassword: 'دووپاتکردنەوەی وشەی نهێنی',
+    updatePassword: 'نوێکردنەوەی وشەی نهێنی', passwordUpdated: 'وشەی نهێنی نوێکرایەوە', mismatch: 'وشەکانی نهێنی یەک ناگرنەوە',
+    publicProfile: 'پڕۆفایلی گشتی', publicProfileDesc: 'ڕێگە بدە بە بەکارهێنەرانی تر پڕۆفایلەکەت بدۆزنەوە.',
+    languageLabel: 'زمان', comingSoon: 'بەم زووانە — هێشتا لە سێرڤەردا بەردەست نییە.',
   },
 };
 
 export default function Settings() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
+  const { user, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
   const [savedMessage, setSavedMessage] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState('');
 
-  const [formData, setFormData] = useState({
-    fullName: 'Sidra Jalal',
-    location: 'Duhok, Iraq',
-    email: 'sidra@example.com',
-    phone: '075079800456',
-    bio: 'Always looking for new experience in live music and events.',
-  });
+  const [formData, setFormData] = useState({ fullName: user?.name || '', email: user?.email || '' });
+  const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    setFormData({ fullName: user?.name || '', email: user?.email || '' });
+  }, [user]);
 
-  const handleSave = (e) => {
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSavedMessage(true);
-    setTimeout(() => setSavedMessage(false), 2500);
+    try {
+      await updateProfile({ name: formData.fullName, email: formData.email });
+      setSavedMessage(true);
+      setTimeout(() => setSavedMessage(false), 2500);
+    } catch (err) {
+      console.error('Failed to save settings', err);
+    }
   };
 
-  const currentLangKey = language?.includes('Kurdish') || language?.includes('کوردی') || language === 'ku' 
-    ? 'Kurdish (کوردی)' 
-    : language?.includes('Arabic') || language?.includes('العربية') || language === 'ar' 
-    ? 'العربية (Arabic)' 
+  const handlePasswordUpdate = async () => {
+    if (!passwordData.newPassword || passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordSaved('mismatch');
+      return;
+    }
+    try {
+      await updateProfile({ password: passwordData.newPassword });
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      setPasswordSaved('ok');
+      setTimeout(() => setPasswordSaved(''), 2500);
+    } catch (err) {
+      console.error('Failed to update password', err);
+    }
+  };
+
+  const currentLangKey = language?.includes('Kurdish') || language?.includes('کوردی') || language === 'ku'
+    ? 'Kurdish (کوردی)'
+    : language?.includes('Arabic') || language?.includes('العربية') || language === 'ar'
+    ? 'العربية (Arabic)'
     : 'English';
 
   const t = translations[currentLangKey] || translations['English'];
@@ -164,262 +118,293 @@ export default function Settings() {
     { id: 'preferences', label: t.preferences, desc: t.preferencesDesc, icon: Sliders, path: null },
   ];
 
-  return (
-    <div 
-      dir={isRtl ? 'rtl' : 'ltr'} 
-      className="min-h-screen bg-slate-50 dark:bg-[#0b0712] text-slate-900 dark:text-white p-4 md:p-8 font-sans max-w-7xl mx-auto space-y-6 transition-colors duration-200"
-    >
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold font-serif text-slate-900 dark:text-white">{t.settingsTitle}</h1>
-          <p className="text-xs text-slate-600 dark:text-purple-300/60 mt-1">{t.settingsDesc}</p>
-        </div>
-      </div>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+    }
+  };
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* قائمة الخيارات الجانبية (مع تعديل التباين لتصبح النصوص واضحة تماماً) */}
-        <div className="lg:col-span-4 space-y-3">
-          {menuItems.map((item) => {
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  };
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="max-w-4xl mx-auto px-4 py-8 overflow-hidden font-sans"
+    >
+      {/* Title Header Section */}
+      <motion.div 
+        variants={itemVariants}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ 
+              rotate: [0, 15, -15, 15, 0],
+              scale: [1, 1.1, 1, 1.1, 1] 
+            }}
+            transition={{ 
+              duration: 4, 
+              repeat: Infinity, 
+              repeatType: "loop",
+              ease: "easeInOut" 
+            }}
+          >
+            <SettingsIcon className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+          </motion.div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white">
+              {t.settingsTitle}
+            </h1>
+          </div>
+        </div>
+        <p className="text-slate-600 dark:text-purple-300/70 text-sm md:text-base leading-relaxed mt-2">
+          {t.settingsDesc}
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Sidebar Menu Items */}
+        <motion.div variants={itemVariants} className="lg:col-span-4 space-y-3">
+          {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
-              <button
+              <motion.button
                 key={item.id}
-                onClick={() => {
-                  if (item.path) {
-                    navigate(item.path);
-                  } else {
-                    setActiveTab(item.id);
-                  }
-                }}
-                className={`w-full text-start p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between cursor-pointer group ${
+                custom={index}
+                whileHover={{ y: -4, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { item.path ? navigate(item.path) : setActiveTab(item.id); }}
+                className={`w-full text-start p-4 rounded-3xl border transition-all duration-300 flex items-center justify-between cursor-pointer group ${
                   isActive && !item.path
-                    ? 'bg-purple-600 dark:bg-purple-600 text-white border-purple-500 shadow-lg dark:shadow-xl dark:shadow-purple-900/40'
-                    : 'bg-white dark:bg-[#150a21] border-slate-200 dark:border-purple-900/40 hover:border-purple-400 dark:hover:border-purple-500/50 hover:bg-purple-50 dark:hover:bg-purple-950/20'
+                    ? 'bg-purple-600 dark:bg-purple-600 text-white border-purple-500 shadow-lg dark:shadow-xl dark:shadow-purple-950/40'
+                    : 'bg-white dark:bg-[#13091f] border-slate-200/80 dark:border-[#2a1745] hover:border-purple-400 dark:hover:border-purple-500/50 hover:bg-purple-50 dark:hover:bg-purple-900/10'
                 }`}
               >
                 <div className="flex items-center gap-3.5">
-                  <div className={`p-2.5 rounded-xl border transition ${
+                  <div className={`p-2.5 rounded-2xl border transition duration-300 group-hover:scale-110 ${
                     isActive && !item.path
-                      ? 'bg-white/20 text-white border-white/30' 
-                      : 'bg-purple-100 dark:bg-purple-600/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/20 group-hover:bg-purple-200 dark:group-hover:bg-purple-600/20'
+                      ? 'bg-white/20 text-white border-white/30'
+                      : 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/40 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50'
                   }`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className={`font-bold text-sm ${isActive && !item.path ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                      {item.label}
-                    </h3>
-                    <p className={`text-[11px] ${isActive && !item.path ? 'text-purple-100' : 'text-slate-600 dark:text-purple-300/60'}`}>
-                      {item.desc}
-                    </p>
+                    <h3 className={`font-bold text-sm ${isActive && !item.path ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{item.label}</h3>
+                    <p className={`text-[11px] ${isActive && !item.path ? 'text-purple-100' : 'text-slate-600 dark:text-purple-300/70'}`}>{item.desc}</p>
                   </div>
                 </div>
-              </button>
+              </motion.button>
             );
           })}
-        </div>
+        </motion.div>
 
-        {/* لوحة المحتوى الرئيسي */}
-        <div className="lg:col-span-8">
-          <div className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl dark:shadow-2xl relative overflow-hidden">
+        {/* Content Area */}
+        <motion.div variants={itemVariants} className="lg:col-span-8">
+          <div className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-[#2a1745] rounded-3xl p-6 md:p-8 space-y-6 shadow-sm relative overflow-hidden">
             
-            {activeTab === 'account' && (
-              <form onSubmit={handleSave} className="space-y-6">
-                <div className="flex justify-between items-center border-b border-slate-200 dark:border-purple-900/40 pb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t.profileInfo}</h2>
-                    <p className="text-xs text-slate-600 dark:text-purple-300/60">{t.profileDesc}</p>
-                  </div>
-                  {savedMessage && (
-                    <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-200 dark:border-green-500/30 shadow-md">
-                      <CheckCircle2 className="w-4 h-4" /> {t.savedSuccessfully}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-5 bg-slate-50 dark:bg-[#0b0712]/60 p-4 rounded-2xl border border-slate-200 dark:border-purple-900/40">
-                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-purple-300 dark:border-purple-500/40 shadow-md">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-md inline-flex items-center gap-2">
-                      <Camera className="w-4 h-4" /> {t.uploadPhoto}
-                      <input type="file" className="hidden" />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.fullName}
-                    </label>
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.location}
-                    </label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.email}
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.phone}
-                    </label>
-                    <input
-                      type="text"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.bio}
-                  </label>
-                  <textarea
-                    name="bio"
-                    rows="3"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 resize-none transition"
-                  />
-                </div>
-
-                <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-purple-900/40">
-                  <button
-                    type="submit"
-                    className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-8 rounded-xl text-sm transition shadow-lg shadow-purple-600/20 dark:shadow-purple-900/40 cursor-pointer"
-                  >
-                    {t.saveChanges}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {activeTab === 'security' && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-200 dark:border-purple-900/40 pb-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t.security}</h2>
-                  <p className="text-xs text-slate-600 dark:text-purple-300/60">{t.securityDesc}</p>
-                </div>
-                <div className="space-y-4 max-w-lg">
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold">{t.currentPassword}</label>
-                    <input type="password" placeholder="••••••••" className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold">{t.newPassword}</label>
-                    <input type="password" placeholder="••••••••" className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <button className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-xl text-sm transition cursor-pointer shadow-lg shadow-purple-600/20 dark:shadow-purple-900/30">
-                    {t.updatePassword}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'privacy' && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-200 dark:border-purple-900/40 pb-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t.privacy}</h2>
-                  <p className="text-xs text-slate-600 dark:text-purple-300/60">{t.privacyDesc}</p>
-                </div>
-                <div className="space-y-4">
-                  <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-2xl cursor-pointer">
+            <AnimatePresence mode="wait">
+              {activeTab === 'account' && (
+                <motion.form
+                  key="account"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  onSubmit={handleSave} 
+                  className="space-y-6"
+                >
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-[#2a1745] pb-4">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{t.publicProfile}</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-purple-300/60">{t.publicProfileDesc}</p>
+                      <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white">{t.profileInfo}</h2>
+                      <p className="text-xs text-slate-600 dark:text-purple-300/70">{t.profileDesc}</p>
                     </div>
-                    <input type="checkbox" defaultChecked className="w-5 h-5 accent-purple-600 rounded cursor-pointer" />
-                  </label>
-                </div>
-              </div>
-            )}
+                    {savedMessage && (
+                      <motion.span 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 px-3 py-1.5 rounded-2xl border border-green-200 dark:border-green-500/30 shadow-sm"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> {t.savedSuccessfully}
+                      </motion.span>
+                    )}
+                  </div>
 
-            {activeTab === 'payment' && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-200 dark:border-purple-900/40 pb-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t.payment}</h2>
-                  <p className="text-xs text-slate-600 dark:text-purple-300/60">{t.paymentDesc}</p>
-                </div>
-                <div className="p-5 bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-purple-100 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/30 rounded-xl text-purple-600 dark:text-purple-400">
-                      <CreditCard className="w-6 h-6" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.fullName}
+                      </label>
+                      <input
+                        type="text" name="fullName" value={formData.fullName} onChange={handleChange}
+                        className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition shadow-sm"
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">MasterCard ending in •••• 4592</p>
-                      <p className="text-[11px] text-slate-600 dark:text-purple-300/60">Expires 08/28</p>
+                      <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.email}
+                      </label>
+                      <input
+                        type="email" name="email" value={formData.email} onChange={handleChange}
+                        className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition shadow-sm"
+                      />
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
 
-            {activeTab === 'preferences' && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-200 dark:border-purple-900/40 pb-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t.preferences}</h2>
-                  <p className="text-xs text-slate-600 dark:text-purple-300/60">{t.preferencesDesc}</p>
-                </div>
-                <div className="space-y-4 max-w-lg">
-                  <div>
-                    <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.languageLabel}
-                    </label>
-                    <select 
-                      value={currentLangKey}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                  <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-[#2a1745]">
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit" 
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-8 rounded-2xl text-sm transition shadow-sm shadow-purple-600/20 dark:shadow-purple-950/40 cursor-pointer"
                     >
-                      <option value="English">English</option>
-                      <option value="العربية (Arabic)">العربية (Arabic)</option>
-                      <option value="Kurdish (کوردی)">Kurdish (کوردی)</option>
-                    </select>
+                      {t.saveChanges}
+                    </motion.button>
                   </div>
-                </div>
-              </div>
-            )}
+                </motion.form>
+              )}
+
+              {activeTab === 'security' && (
+                <motion.div
+                  key="security"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="border-b border-slate-100 dark:border-[#2a1745] pb-4 flex justify-between items-center">
+                    <div>
+                      <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white">{t.security}</h2>
+                      <p className="text-xs text-slate-600 dark:text-purple-300/70">{t.securityDesc}</p>
+                    </div>
+                    {passwordSaved === 'ok' && (
+                      <motion.span 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 px-3 py-1.5 rounded-2xl border border-green-200 dark:border-green-500/30"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> {t.passwordUpdated}
+                      </motion.span>
+                    )}
+                  </div>
+                  <div className="space-y-4 max-w-lg">
+                    <div>
+                      <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold">{t.newPassword}</label>
+                      <input
+                        type="password" placeholder="••••••••" value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 shadow-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold">{t.confirmPassword}</label>
+                      <input
+                        type="password" placeholder="••••••••" value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 shadow-sm"
+                      />
+                    </div>
+                    {passwordSaved === 'mismatch' && <p className="text-xs text-rose-500">{t.mismatch}</p>}
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handlePasswordUpdate} 
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-2xl text-sm transition cursor-pointer shadow-sm shadow-purple-600/20 dark:shadow-purple-950/30"
+                    >
+                      {t.updatePassword}
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'privacy' && (
+                <motion.div
+                  key="privacy"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="border-b border-slate-100 dark:border-[#2a1745] pb-4">
+                    <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white">{t.privacy}</h2>
+                    <p className="text-xs text-slate-600 dark:text-purple-300/70">{t.privacyDesc}</p>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl cursor-not-allowed opacity-60 shadow-sm">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">{t.publicProfile}</h4>
+                        <p className="text-[11px] text-slate-600 dark:text-purple-300/70">{t.publicProfileDesc}</p>
+                      </div>
+                      <input type="checkbox" disabled defaultChecked className="w-5 h-5 accent-purple-600 rounded" />
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-purple-300/60">{t.comingSoon}</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'payment' && (
+                <motion.div
+                  key="payment"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="border-b border-slate-100 dark:border-[#2a1745] pb-4">
+                    <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white">{t.payment}</h2>
+                    <p className="text-xs text-slate-600 dark:text-purple-300/70">{t.paymentDesc}</p>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-purple-300/60">{t.comingSoon}</p>
+                </motion.div>
+              )}
+
+              {activeTab === 'preferences' && (
+                <motion.div
+                  key="preferences"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="border-b border-slate-100 dark:border-[#2a1745] pb-4">
+                    <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white">{t.preferences}</h2>
+                    <p className="text-xs text-slate-600 dark:text-purple-300/70">{t.preferencesDesc}</p>
+                  </div>
+                  <div className="space-y-4 max-w-lg">
+                    <div>
+                      <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-semibold flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> {t.languageLabel}
+                      </label>
+                      <select
+                        value={currentLangKey}
+                        onChange={(e) => setLanguage(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer shadow-sm"
+                      >
+                        <option value="English">English</option>
+                        <option value="العربية (Arabic)">العربية (Arabic)</option>
+                        <option value="Kurdish (کوردی)">Kurdish (کوردی)</option>
+                      </select>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

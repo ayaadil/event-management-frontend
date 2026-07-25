@@ -52,42 +52,86 @@ export default function About() {
 
   const t = content[isArabic ? 'ar' : isKurdish ? 'ku' : 'en'];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: { duration: 0.5, ease: "easeOut" }
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="max-w-4xl mx-auto px-4 py-8"
+      className="max-w-4xl mx-auto px-4 py-8 overflow-hidden"
     >
-      <h1 className="font-serif text-3xl mb-3 font-bold text-slate-900 dark:text-white">
-        {t.aboutTitle} <span className="text-purple-600 dark:text-[#F0ABFC]">{t.brand}</span>
-      </h1>
-      <p className="text-slate-600 dark:text-[#B6A6D6] text-sm md:text-base leading-relaxed mb-8">
-        {t.aboutDesc}
-      </p>
+      <motion.div 
+        variants={itemVariants}
+        className="mb-8"
+      >
+        {/* تم جعل كلمة About و Evently بنفس التدرج الجميل */}
+        <h1 className="font-serif text-3xl md:text-4xl mb-3 font-bold tracking-wide flex items-center gap-2 flex-wrap">
+          <span className="bg-gradient-to-r from-purple-700 via-fuchsia-600 to-indigo-600 dark:from-purple-300 dark:via-fuchsia-400 dark:to-indigo-300 bg-clip-text text-transparent">
+            {t.aboutTitle}
+          </span>
+          <span className="bg-gradient-to-r from-purple-700 via-fuchsia-600 to-indigo-600 dark:from-purple-300 dark:via-fuchsia-400 dark:to-indigo-300 bg-clip-text text-transparent">
+            {t.brand}
+          </span>
+        </h1>
+        <p className="text-slate-600 dark:text-[#B6A6D6] text-sm md:text-base leading-relaxed">
+          {t.aboutDesc}
+        </p>
+      </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         {t.features.map(({ icon: Icon, title, text }) => (
-          <div
+          <motion.div
             key={title}
-            className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-2xl p-5 hover:border-purple-400 dark:hover:border-purple-500/40 transition shadow-md dark:shadow-lg"
+            variants={itemVariants}
+            whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-2xl p-5 hover:border-purple-400 dark:hover:border-purple-500/40 transition shadow-md dark:shadow-lg group cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-[#DD3E93]/15 flex items-center justify-center mb-4">
+            <motion.div 
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.6 }}
+              className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-[#DD3E93]/15 flex items-center justify-center mb-4"
+            >
               <Icon size={20} className="text-purple-600 dark:text-[#F0ABFC]" />
-            </div>
-            <h3 className="font-bold text-base mb-1.5 text-slate-900 dark:text-white">{title}</h3>
+            </motion.div>
+            <h3 className="font-bold text-base mb-1.5 text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-[#F0ABFC] transition-colors">{title}</h3>
             <p className="text-xs text-slate-600 dark:text-[#B6A6D6] leading-relaxed">{text}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      <div className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-md dark:shadow-lg">
+      <motion.div 
+        variants={itemVariants}
+        whileHover={{ scale: 1.01 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-md dark:shadow-lg"
+      >
         <h2 className="font-serif text-xl font-bold mb-2 text-slate-900 dark:text-white">{t.missionTitle}</h2>
         <p className="text-sm md:text-base text-slate-600 dark:text-[#B6A6D6] leading-relaxed">
           {t.missionDesc}
         </p>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

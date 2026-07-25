@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { api } from "../services/api";
+// src/context/AuthContext.jsx
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -8,7 +9,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('token');
     if (!token) {
       setLoading(false);
       return;
@@ -16,51 +17,65 @@ export function AuthProvider({ children }) {
 
     api
       .getMe()
-      .then((data) => setUser(data.user || data))
-      .catch((err) => {
-        console.warn("Server is offline or route /api/me not found:", err);
+      .then((userData) => setUser(userData))
+      .catch(() => {
+        // token invalid/expired
+        localStorage.removeItem('token');
+        setUser(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const login = async (email, password) => {
     const data = await api.login({ email, password });
-    console.log("Login!",email,password);
-    const token = data.token || data.data?.token;
-    const userData = data.user || data.data?.user || data;
-
-    if (token) {
-      localStorage.setItem("token", token);
-      setUser(userData);
-      return data;
-    } else {
-      throw new Error(data.message || "فشل تسجيل الدخول: استجابة غير صحيحة من السيرفر");
-    }
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
+    return data;
   };
 
-  const register = async (name, email, password) => {
+  const register = async ({ name, email, password }) => {
     const data = await api.register({ name, email, password });
-    const token = data.token || data.data?.token;
-    const userData = data.user || data.data?.user || data;
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
+    return data;
+  };
 
-    if (token) {
-      localStorage.setItem("token", token);
-      setUser(userData);
-      return data;
-    } else {
-      throw new Error(data.message || "فشل إنشاء الحساب");
-    }
+  const refreshUser = async () => {
+    const userData = await api.getMe();
+    setUser(userData);
+    return userData;
+  };
+
+  const updateProfile = async (fields) => {
+    const data = await api.updateMe(fields);
+    setUser(data.user);
+    return data;
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem('token');
     setUser(null);
   };
 
   const isAuthenticated = !!user;
+  const isOrganizer = user?.role === 'organizer';
+  const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isOrganizer,
+        isAdmin,
+        loading,
+        login,
+        register,
+        logout,
+        refreshUser,
+        updateProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -69,7 +84,7 @@ export function AuthProvider({ children }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

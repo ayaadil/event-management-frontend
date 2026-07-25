@@ -1,3 +1,4 @@
+// src/App.jsx (updated — add these three routes + imports to the file from earlier)
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -5,12 +6,10 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
-// Components & Layouts
-import SplashScreen from './components/layout/SplashScreen';
+import SplashScreen from './components/layout/splashscreen';
 import AuthLayout from './layouts/AuthLayout';
 import MainLayout from './layouts/MainLayout';
 
-// Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -21,16 +20,19 @@ import Profile from './pages/Profile';
 import Saved from './pages/Saved';
 import Settings from './pages/Settings';
 import Tickets from './pages/Tickets';
-import CategoriesPage from './pages/categories';
+import CategoriesPage from './pages/Categories';
 import Explore from './pages/Explore';
 import Help from './pages/Help';
-import NotificationsPage from './pages/Notifications.jsx';
+import NotificationsPage from './pages/Notifications';
+import MyEvents from './pages/MyEvents';
+import AdminUsers from './pages/admin/Users';
+import AdminCategories from './pages/admin/Categories';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 4000);
+    const timer = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -42,13 +44,11 @@ export default function App() {
         <AuthProvider>
           <LanguageProvider>
             <Routes>
-              {/* Public Auth Routes */}
               <Route element={<AuthLayout />}>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
               </Route>
 
-              {/* Protected Application Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<Navigate to="/home" replace />} />
@@ -59,15 +59,17 @@ export default function App() {
                   <Route path="/saved" element={<Saved />} />
                   <Route path="/tickets" element={<Tickets />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/my-events" element={<MyEvents />} />
                   <Route path="/create-event" element={<CreateEvent />} />
                   <Route path="/events/:id" element={<EventDetails />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/help" element={<Help />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/categories" element={<AdminCategories />} />
                 </Route>
               </Route>
 
-              {/* Fallback Route */}
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </LanguageProvider>

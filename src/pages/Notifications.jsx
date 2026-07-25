@@ -1,5 +1,7 @@
+// src/pages/NotificationsPage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCheck, Trash2, Calendar, Ticket } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -92,9 +94,9 @@ export default function NotificationsPage() {
 
   const getIcon = (type) => {
     switch (type) {
-      case 'ticket': return <Ticket className="w-5 h-5 text-purple-500 dark:text-purple-400" />;
-      case 'event': return <Calendar className="w-5 h-5 text-fuchsia-500 dark:text-fuchsia-400" />;
-      default: return <Bell className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />;
+      case 'ticket': return <Ticket className="w-5 h-5 text-purple-600 dark:text-[#F0ABFC]" />;
+      case 'event': return <Calendar className="w-5 h-5 text-purple-600 dark:text-[#F0ABFC]" />;
+      default: return <Bell className="w-5 h-5 text-purple-600 dark:text-[#F0ABFC]" />;
     }
   };
 
@@ -121,80 +123,144 @@ export default function NotificationsPage() {
 
   const t = uiTexts[isArabic ? 'ar' : isKurdish ? 'ku' : 'en'];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
+    exit: { opacity: 0, scale: 0.8, y: -20, transition: { duration: 0.3 } }
+  };
+
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} className="w-full min-h-full text-slate-800 dark:text-white p-4 md:p-8 font-sans selection:bg-purple-500 selection:text-white">
-      <div className="max-w-4xl mx-auto space-y-6">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-purple-100 via-purple-50 to-white dark:from-[#1e0c30] dark:via-[#2a1240] dark:to-[#170a2c] rounded-3xl p-6 md:p-8 border border-purple-200 dark:border-purple-900/40 shadow-lg dark:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="p-3.5 bg-purple-100 dark:bg-purple-950 border border-purple-300 dark:border-purple-800/50 rounded-2xl text-purple-600 dark:text-purple-400 shadow-inner">
-              <Bell className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-wide text-slate-900 dark:text-white">{t.title}</h1>
-              <p className="text-purple-600/70 dark:text-purple-300/70 text-xs md:text-sm mt-1">{t.subtitle}</p>
-            </div>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="max-w-4xl mx-auto px-4 py-8 overflow-hidden font-sans"
+    >
+      {/* Header Section matching About/Settings/Saved style */}
+      <motion.div 
+        variants={itemVariants}
+        className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ 
+              rotate: [0, 15, -15, 15, 0],
+              scale: [1, 1.1, 1, 1.1, 1] 
+            }}
+            transition={{ 
+              duration: 4, 
+              repeat: Infinity, 
+              repeatType: "loop",
+              ease: "easeInOut" 
+            }}
+          >
+            <Bell className="w-8 h-8 text-purple-600 dark:text-[#F0ABFC]" />
+          </motion.div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white">
+              {t.title}
+            </h1>
           </div>
-
-          {notifications.length > 0 && (
-            <button 
-              onClick={markAllAsRead}
-              className="flex items-center justify-center gap-2 bg-purple-200 dark:bg-purple-600/30 hover:bg-purple-300 dark:hover:bg-purple-600/50 border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-200 px-4 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer"
-            >
-              <CheckCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span>{t.markAll}</span>
-            </button>
-          )}
         </div>
 
-        {/* Notifications List */}
-        <div className="space-y-3">
-          {notifications.length === 0 ? (
-            <div className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/30 rounded-3xl p-12 text-center space-y-3 shadow-sm dark:shadow-none">
-              <Bell className="w-12 h-12 text-purple-300 dark:text-purple-500/30 mx-auto" />
-              <p className="text-slate-500 dark:text-slate-400 text-sm">{t.noNotifs}</p>
-            </div>
-          ) : (
-            notifications.map((item) => (
-              <div 
+        {notifications.length > 0 && (
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={markAllAsRead}
+            className="flex items-center justify-center gap-2 bg-purple-100 dark:bg-[#DD3E93]/15 hover:bg-purple-200 dark:hover:bg-[#DD3E93]/25 border border-purple-200 dark:border-white/10 text-purple-700 dark:text-[#F0ABFC] px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm w-fit"
+          >
+            <CheckCheck className="w-4 h-4 text-purple-600 dark:text-[#F0ABFC]" />
+            <span>{t.markAll}</span>
+          </motion.button>
+        )}
+      </motion.div>
+
+      <motion.p 
+        variants={itemVariants}
+        className="text-slate-600 dark:text-[#B6A6D6] text-sm md:text-base leading-relaxed mb-6 -mt-4"
+      >
+        {t.subtitle}
+      </motion.p>
+
+      {/* Notifications List */}
+      <motion.div variants={containerVariants} className="space-y-3">
+        {notifications.length === 0 ? (
+          <motion.div 
+            variants={itemVariants}
+            className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-2xl p-10 text-center max-w-md mx-auto space-y-4 my-12 shadow-md dark:shadow-lg"
+          >
+            <motion.div 
+              animate={{ y: [0, -8, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+              className="p-4 bg-purple-100 dark:bg-[#DD3E93]/15 border border-purple-200 dark:border-white/10 rounded-xl w-fit mx-auto text-purple-600 dark:text-[#F0ABFC]"
+            >
+              <Bell className="w-8 h-8" />
+            </motion.div>
+            <p className="text-slate-600 dark:text-[#B6A6D6] text-sm font-medium">{t.noNotifs}</p>
+          </motion.div>
+        ) : (
+          <AnimatePresence>
+            {notifications.map((item) => (
+              <motion.div
+                variants={itemVariants}
+                exit="exit"
+                layout
                 key={item.id}
+                whileHover={{ y: -4, scale: 1.01 }}
+                transition={{ duration: 0.2 }}
                 onClick={() => handleNotificationClick(item)}
-                className={`bg-white dark:bg-[#150a21] border rounded-2xl p-5 flex items-start justify-between gap-4 transition hover:border-purple-400 dark:hover:border-purple-500/80 hover:bg-purple-50 dark:hover:bg-purple-950/20 cursor-pointer shadow-sm dark:shadow-none ${
+                className={`bg-white dark:bg-[#2E1B4F] border rounded-2xl p-5 flex items-start justify-between gap-4 transition cursor-pointer group shadow-md dark:shadow-lg ${
                   item.read 
-                    ? 'border-slate-200 dark:border-purple-900/20 opacity-80' 
-                    : 'border-purple-300 dark:border-purple-500/40 shadow-md dark:shadow-lg dark:shadow-purple-950/40 bg-gradient-to-r from-purple-50 to-white dark:from-[#170a25] dark:to-[#12071c]'
+                    ? 'border-slate-200 dark:border-white/10 opacity-75' 
+                    : 'border-purple-400 dark:border-purple-500/40 bg-purple-50/50 dark:bg-[#2E1B4F]/90'
                 }`}
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-3 bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/40 rounded-xl mt-0.5 shrink-0">
+                  <motion.div 
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                    className="p-3 bg-purple-100 dark:bg-[#DD3E93]/15 border border-purple-200 dark:border-white/10 rounded-xl mt-0.5 shrink-0 flex items-center justify-center"
+                  >
                     {getIcon(item.type)}
-                  </div>
+                  </motion.div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{getLocalized(item.title)}</h4>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-[#F0ABFC] transition-colors">
+                        {getLocalized(item.title)}
+                      </h4>
                       {!item.read && (
-                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                        <span className="w-2 h-2 rounded-full bg-purple-600 dark:bg-[#F0ABFC] animate-pulse"></span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300/90 leading-relaxed">{getLocalized(item.desc)}</p>
-                    <span className="text-[11px] text-purple-500 dark:text-purple-400/70 block pt-1">{getLocalized(item.time)}</span>
+                    <p className="text-xs text-slate-600 dark:text-[#B6A6D6] leading-relaxed">{getLocalized(item.desc)}</p>
+                    <span className="text-[11px] text-purple-600 dark:text-[#F0ABFC]/70 block pt-1">{getLocalized(item.time)}</span>
                   </div>
                 </div>
 
-                <button 
+                <motion.button 
+                  whileHover={{ scale: 1.15, rotate: 10 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={(e) => deleteNotification(item.id, e)}
-                  className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 p-2 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/10 transition cursor-pointer shrink-0"
+                  className="text-slate-400 dark:text-[#B6A6D6] hover:text-rose-500 dark:hover:text-rose-400 p-2 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/10 transition cursor-pointer shrink-0"
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-
-      </div>
-    </div>
+                </motion.button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }

@@ -4,17 +4,107 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Share2, Heart, Calendar, Clock, MapPin, Ticket,
-  Plus, Minus, MessageSquare, X, Send, Music, Users
+  Plus, Minus, MessageSquare, X, Send, Music, Users,
+  Layers,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { formatDate, formatTime } from '../utils/format';
 
+// قاموس ترجمة ثابت لأسماء التصنيفات الشائعة (fallback لو الباك اند ما يرجع category_name_ar/ku)
+const CATEGORY_TRANSLATIONS = {
+  'art & culture': { ar: 'فن وثقافة', ku: 'هونەر و کەلتوور', en: 'Art & Culture' },
+  'business': { ar: 'أعمال', ku: 'بازرگانی', en: 'Business' },
+  'design': { ar: 'تصميم', ku: 'دیزاین', en: 'Design' },
+  'education': { ar: 'تعليم', ku: 'پەروەردە', en: 'Education' },
+  'family & kids': { ar: 'العائلة والأطفال', ku: 'خێزان و منداڵان', en: 'Family & Kids' },
+  'fashion': { ar: 'موضة', ku: 'مۆدا', en: 'Fashion' },
+  'gaming': { ar: 'ألعاب', ku: 'یاری', en: 'Gaming' },
+  'technology': { ar: 'تكنولوجيا', ku: 'تەکنەلۆژیا', en: 'Technology' },
+  'music': { ar: 'موسيقى', ku: 'مۆسیقا', en: 'Music' },
+  'marketing': { ar: 'تسويق', ku: 'بازاڕگەری', en: 'Marketing' },
+  'sports & fitness': { ar: 'رياضة ولياقة', ku: 'وەرزش و ئامادەیی لەشی', en: 'Sports & Fitness' },
+};
+
+const t = {
+  ar: {
+    loading: 'جاري التحميل...',
+    notFound: 'الفعالية غير موجودة',
+    backHome: '← العودة للرئيسية',
+    aboutEvent: 'عن الفعالية:',
+    theArtists: 'الفنانون:',
+    tickets: 'التذاكر',
+    soldOut: 'نفدت الكمية',
+    available: 'متاح',
+    free: 'مجاناً',
+    capacity: 'السعة',
+    general: 'عام',
+    contact: 'تواصل',
+    getTicket: 'احصل على التذكرة',
+    booking: 'جاري الحجز...',
+    contactOrganizer: 'تواصل مع المنظم',
+    yourMessage: 'رسالتك',
+    messagePlaceholder: 'اسأل عن التذاكر أو الموقع أو الجدول...',
+    openEmail: 'فتح البريد الإلكتروني',
+    selectTicket: 'الرجاء اختيار تذكرة واحدة على الأقل',
+    bookingFailed: 'فشل الحجز',
+  },
+  ku: {
+    loading: 'چاوەڕوانبە...',
+    notFound: 'چالاکییەکە نەدۆزرایەوە',
+    backHome: '← گەڕانەوە بۆ سەرەکی',
+    aboutEvent: 'دەربارەی چالاکییەکە:',
+    theArtists: 'هونەرمەندەکان:',
+    tickets: 'پەتاسەکان',
+    soldOut: 'تەواو بووە',
+    available: 'بەردەستە',
+    free: 'بێبەرامبەر',
+    capacity: 'گونجایی',
+    general: 'گشتی',
+    contact: 'پەیوەندی',
+    getTicket: 'پەتاسە وەربگرە',
+    booking: 'رزۆرکردن...',
+    contactOrganizer: 'پەیوەندی بە ڕێکخەرەوە',
+    yourMessage: 'پەیامەکەت',
+    messagePlaceholder: 'پرسیار بکە دەربارەی پەتاسە، شوێن، یان خشتە...',
+    openEmail: 'کردنەوەی ئیمەیل',
+    selectTicket: 'تکایە لانیکەم یەک پەتاسە هەڵبژێرە',
+    bookingFailed: 'رزۆرکردن سەرکەوتوو نەبوو',
+  },
+  en: {
+    loading: 'Loading...',
+    notFound: 'Event not found',
+    backHome: '← Back home',
+    aboutEvent: 'About Event:',
+    theArtists: 'The Artists:',
+    tickets: 'Tickets',
+    soldOut: 'Sold out',
+    available: 'available',
+    free: 'Free',
+    capacity: 'capacity',
+    general: 'General',
+    contact: 'Contact',
+    getTicket: 'Get Ticket',
+    booking: 'Booking...',
+    contactOrganizer: 'Contact Organizer',
+    yourMessage: 'Your Message',
+    messagePlaceholder: 'Ask a question about tickets, location, or schedule...',
+    openEmail: 'Open Email',
+    selectTicket: 'Please select at least one ticket',
+    bookingFailed: 'Booking failed',
+  },
+};
+
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const isRtl = language?.includes('Arabic') || language?.includes('العربية') || language === 'ar';
+
+  const isKurdish = language?.includes('Kurdish') || language?.includes('کوردی') || language === 'ku';
+  const isArabic = language?.includes('Arabic') || language?.includes('العربية') || language === 'ar';
+  const isRtl = isArabic || isKurdish;
+  const langKey = isArabic ? 'ar' : isKurdish ? 'ku' : 'en';
+  const text = t[langKey];
 
   const [event, setEvent] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
@@ -25,10 +115,23 @@ export default function EventDetails() {
   const [isSaved, setIsSaved] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [messageText, setMessageText] = useState('');
-  
+
   const [quantities, setQuantities] = useState({});
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
+
+  // يرجع اسم التصنيف مترجماً: من قاعدة البيانات أولاً، ثم من القاموس الثابت
+  const localizeCategory = (categoryObj) => {
+    if (!categoryObj) return '';
+    const dbKey = `category_name_${langKey}`;
+    if (categoryObj[dbKey]) return categoryObj[dbKey];
+
+    const base = categoryObj.category_name;
+    if (base && CATEGORY_TRANSLATIONS[base.toLowerCase()]) {
+      return CATEGORY_TRANSLATIONS[base.toLowerCase()][langKey];
+    }
+    return base || '';
+  };
 
   // جلب بيانات الفعالية، أنواع التذاكر، والمتحدثين من الباك إند
   useEffect(() => {
@@ -92,7 +195,7 @@ export default function EventDetails() {
     setBookingError('');
     const selections = ticketTypes.filter((tt) => (quantities[tt.id] || 0) > 0);
     if (selections.length === 0) {
-      setBookingError('Please select at least one ticket');
+      setBookingError(text.selectTicket);
       return;
     }
     setBooking(true);
@@ -102,7 +205,7 @@ export default function EventDetails() {
       }
       navigate('/tickets');
     } catch (err) {
-      setBookingError(err.message || 'Booking failed');
+      setBookingError(err.message || text.bookingFailed);
     } finally {
       setBooking(false);
     }
@@ -120,22 +223,29 @@ export default function EventDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-slate-400 text-sm transition-colors duration-200">
-        Loading...
+      <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-slate-400 text-sm transition-colors duration-200">
+        {text.loading}
       </div>
     );
   }
 
   if (notFound || !event) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-slate-400 transition-colors duration-200">
-        <p className="text-sm">Event not found</p>
+      <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-slate-400 transition-colors duration-200">
+        <p className="text-sm">{text.notFound}</p>
         <button onClick={() => navigate('/home')} className="text-purple-600 dark:text-purple-400 text-xs font-semibold hover:underline cursor-pointer">
-          ← Back home
+          {text.backHome}
         </button>
       </div>
     );
   }
+
+  const categoryName = localizeCategory({
+    category_name: event.category_name,
+    category_name_ar: event.category_name_ar,
+    category_name_ku: event.category_name_ku,
+    category_name_en: event.category_name_en,
+  });
 
   return (
     <motion.div 
@@ -216,8 +326,8 @@ export default function EventDetails() {
               <span>{formatDate(event.date_time)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Music className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>{event.category_name || 'General'}</span>
+              <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+              <span>{categoryName || text.general}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
@@ -226,7 +336,7 @@ export default function EventDetails() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
               <span>
-                {ticketTypes.reduce((sum, tt) => sum + Number(tt.capacity || 0), 0)} capacity
+                {ticketTypes.reduce((sum, tt) => sum + Number(tt.capacity || 0), 0)} {text.capacity}
               </span>
             </div>
           </div>
@@ -234,7 +344,7 @@ export default function EventDetails() {
           {/* وصف الفعالية */}
           {event.description && (
             <div className="space-y-1.5">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">About Event:</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{text.aboutEvent}</h3>
               <p className="text-xs text-slate-600 dark:text-purple-200/70 leading-relaxed">
                 {event.description}
               </p>
@@ -244,7 +354,7 @@ export default function EventDetails() {
           {/* قسم الفنانين (The Artists) */}
           {speakers.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">The Artists:</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{text.theArtists}</h3>
               <div className="flex flex-wrap gap-6 pt-1">
                 {speakers.map((sp) => (
                   <motion.div 
@@ -269,7 +379,7 @@ export default function EventDetails() {
           {/* كروت التذاكر وأزرار التحكم */}
           {ticketTypes.length > 0 && (
             <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Tickets</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{text.tickets}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {ticketTypes.map((tt) => {
                   const soldOut = Number(tt.available_tickets) <= 0;
@@ -282,10 +392,10 @@ export default function EventDetails() {
                       <div className="space-y-1">
                         <h4 className="font-bold text-slate-900 dark:text-white text-xs">{tt.ticket_name}</h4>
                         <p className="text-[10px] text-slate-500 dark:text-purple-300/60">
-                          {soldOut ? 'Sold out' : `${tt.available_tickets} available`}
+                          {soldOut ? text.soldOut : `${tt.available_tickets} ${text.available}`}
                         </p>
                         <p className="text-xs font-bold text-purple-700 dark:text-purple-400 pt-1">
-                          {Number(tt.price) === 0 ? 'Free' : `$${tt.price}`}
+                          {Number(tt.price) === 0 ? text.free : `$${tt.price}`}
                         </p>
                       </div>
 
@@ -327,7 +437,7 @@ export default function EventDetails() {
                 onClick={() => setShowContactModal(true)}
                 className="px-4 py-2 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-200 rounded-xl text-xs font-semibold border border-purple-200 dark:border-purple-500/30 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <MessageSquare className="w-3.5 h-3.5" /> Contact
+                <MessageSquare className="w-3.5 h-3.5" /> {text.contact}
               </motion.button>
             ) : <div />}
 
@@ -338,7 +448,7 @@ export default function EventDetails() {
               disabled={booking || ticketTypes.length === 0}
               className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-2.5 px-8 rounded-xl transition shadow-lg shadow-purple-600/20 dark:shadow-purple-900/40 flex items-center justify-center gap-2 text-xs cursor-pointer"
             >
-              <Ticket className="w-4 h-4" /> {booking ? 'Booking...' : 'Get Ticket'} {totalPrice > 0 ? `($${totalPrice})` : ''}
+              <Ticket className="w-4 h-4" /> {booking ? text.booking : text.getTicket} {totalPrice > 0 ? `($${totalPrice})` : ''}
             </motion.button>
           </div>
 
@@ -356,7 +466,7 @@ export default function EventDetails() {
               transition={{ duration: 0.3 }}
               className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/50 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl relative"
             >
-              <button onClick={() => setShowContactModal(false)} className="absolute top-4 right-4 text-slate-500 dark:text-purple-300 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg">
+              <button onClick={() => setShowContactModal(false)} className={`absolute top-4 ${isRtl ? 'left-4' : 'right-4'} text-slate-500 dark:text-purple-300 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg`}>
                 <X className="w-5 h-5" />
               </button>
 
@@ -365,20 +475,20 @@ export default function EventDetails() {
                   <MessageSquare className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Contact Organizer</h3>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{text.contactOrganizer}</h3>
                   <p className="text-xs text-slate-500 dark:text-purple-300/60">{event.organizer_name}</p>
                 </div>
               </div>
 
               <form onSubmit={handleSendMessage} className="space-y-4">
                 <div>
-                  <label className="text-xs text-slate-700 dark:text-purple-300 block mb-1 font-semibold">Your Message</label>
+                  <label className="text-xs text-slate-700 dark:text-purple-300 block mb-1 font-semibold">{text.yourMessage}</label>
                   <textarea
                     rows="4"
                     required
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
-                    placeholder="Ask a question about tickets, location, or schedule..."
+                    placeholder={text.messagePlaceholder}
                     className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/30 focus:outline-none focus:border-purple-500"
                   />
                 </div>
@@ -388,7 +498,7 @@ export default function EventDetails() {
                   type="submit" 
                   className="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
-                  <Send className="w-4 h-4" /> Open Email
+                  <Send className="w-4 h-4" /> {text.openEmail}
                 </motion.button>
               </form>
             </motion.div>

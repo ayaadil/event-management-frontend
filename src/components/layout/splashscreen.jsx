@@ -12,7 +12,7 @@ function Logo({ size = "md" }) {
         width={px}
         height={px}
         viewBox="0 0 448 512"
-        xmlns="http://www.w3.org/2000/svg"
+        xmlns="http://www.w3.org/3000/svg"
         className="drop-shadow-[0_0_12px_rgba(216,180,254,0.4)]"
       >
         <defs>

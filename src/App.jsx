@@ -1,10 +1,11 @@
-// src/App.jsx (updated — add these three routes + imports to the file from earlier)
+// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './routes/ProtectedRoute';
+import AdminRoute from './routes/AdminRoute';
 
 import SplashScreen from './components/layout/splashscreen';
 import AuthLayout from './layouts/AuthLayout';
@@ -44,11 +45,13 @@ export default function App() {
         <AuthProvider>
           <LanguageProvider>
             <Routes>
+              {/* Public Auth Routes */}
               <Route element={<AuthLayout />}>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
               </Route>
 
+              {/* Protected Application Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<Navigate to="/home" replace />} />
@@ -65,11 +68,16 @@ export default function App() {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/help" element={<Help />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/categories" element={<AdminCategories />} />
+
+                  {/* Admin-only Routes */}
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/categories" element={<AdminCategories />} />
+                  </Route>
                 </Route>
               </Route>
 
+              {/* Fallback Route */}
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </LanguageProvider>

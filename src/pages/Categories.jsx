@@ -25,6 +25,22 @@ const CATEGORY_ICONS = {
 };
 const iconForCategory = (name = '') => CATEGORY_ICONS[name.toLowerCase()] || MoreHorizontal;
 
+// قاموس ترجمة ثابت — يُستخدم عندما لا توجد ترجمة بقاعدة البيانات (name_ar/name_ku فارغة)
+// المفتاح لازم يطابق اسم التصنيف الإنجليزي (name) المخزّن بقاعدة البيانات بالضبط (حروف صغيرة)
+const CATEGORY_TRANSLATIONS = {
+  'art & culture': { ar: 'فن وثقافة', ku: 'هونەر و کەلتوور', en: 'Art & Culture' },
+  'business': { ar: 'أعمال', ku: 'بازرگانی', en: 'Business' },
+  'design': { ar: 'تصميم', ku: 'دیزاین', en: 'Design' },
+  'education': { ar: 'تعليم', ku: 'پەروەردە', en: 'Education' },
+  'family & kids': { ar: 'العائلة والأطفال', ku: 'خێزان و منداڵان', en: 'Family & Kids' },
+  'fashion': { ar: 'موضة', ku: 'مۆدا', en: 'Fashion' },
+  'gaming': { ar: 'ألعاب', ku: 'یاری', en: 'Gaming' },
+  'technology': { ar: 'تكنولوجيا', ku: 'تەکنەلۆژیا', en: 'Technology' },
+  'music': { ar: 'موسيقى', ku: 'مۆسیقا', en: 'Music' },
+  'marketing': { ar: 'تسويق', ku: 'بازاڕگەری', en: 'Marketing' },
+  'sports & fitness': { ar: 'رياضة ولياقة', ku: 'وەرزش و ئامادەیی لەشی', en: 'Sports & Fitness' },
+};
+
 export default function CategoriesPage() {
   const contextLang = useLanguage();
   const [searchParams] = useSearchParams();
@@ -40,6 +56,21 @@ export default function CategoriesPage() {
 
   const currentLang = getCurrentLang();
   const isRtl = currentLang === 'ar' || currentLang === 'ku';
+
+  // يرجع القيمة المترجمة: أولاً من قاعدة البيانات (obj[base_lang])،
+  // ولو فارغة يرجع من قاموس CATEGORY_TRANSLATIONS الثابت (مطابقة على obj[base] بالإنجليزي)،
+  // وأخيراً obj[base] كحل أخير
+  const localize = (obj, base) => {
+    if (!obj) return '';
+    const dbKey = `${base}_${currentLang}`;
+    if (obj[dbKey]) return obj[dbKey];
+
+    const fallbackName = obj[base];
+    if (fallbackName && CATEGORY_TRANSLATIONS[fallbackName.toLowerCase()]) {
+      return CATEGORY_TRANSLATIONS[fallbackName.toLowerCase()][currentLang];
+    }
+    return fallbackName || '';
+  };
 
   const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl || 'all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +93,7 @@ export default function CategoriesPage() {
       noEvents: 'لا توجد فعاليات مطابقة في هذا التصنيف حالياً.',
       loading: 'جاري تحميل الفعاليات...',
       allCat: 'الكل',
+      category: 'التصنيف',
     },
     ku: {
       title: 'گەڕان بەدوای پۆلەکاندا',
@@ -73,6 +105,7 @@ export default function CategoriesPage() {
       noEvents: 'هیچ چالاکییەک لەم پۆلەدا نەدۆزراوەتەوە.',
       loading: 'چاوەڕوانبە...',
       allCat: 'هەموو',
+      category: 'پۆل',
     },
     en: {
       title: 'Explore Categories',
@@ -84,6 +117,7 @@ export default function CategoriesPage() {
       noEvents: 'No events found in this category.',
       loading: 'Loading events...',
       allCat: 'All',
+      category: 'Category',
     }
   };
   const t = uiTexts[currentLang] || uiTexts.en;
@@ -113,7 +147,7 @@ export default function CategoriesPage() {
           status: 'published',
           limit: 30,
         })
-        .then((data) => setEvents(data.events || []))
+        .then((data) => setEvents(data.events || data.rows || []))
         .catch(() => setEvents([]))
         .finally(() => setLoading(false));
     }, 300);
@@ -149,10 +183,11 @@ export default function CategoriesPage() {
     }
   };
 
+  const selectedCategoryObj = categories.find((c) => String(c.id) === String(selectedCategory));
   const activeCategoryName =
     selectedCategory === 'all'
       ? t.allEvents
-      : `${categories.find((c) => String(c.id) === String(selectedCategory))?.name || ''} - ${t.allEvents}`;
+      : `${localize(selectedCategoryObj, 'name')} - ${t.allEvents}`;
 
   return (
     <motion.div 
@@ -171,7 +206,7 @@ export default function CategoriesPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-2xl md:text-3xl font-bold font-serif text-slate-900 dark:text-white"
+              className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white"
             >
               {t.title}
             </motion.h1>
@@ -250,6 +285,7 @@ export default function CategoriesPage() {
               </motion.button>
 
               {categories.map((cat) => {
+                const localizedName = localize(cat, 'name');
                 const Icon = iconForCategory(cat.name);
                 const isActive = String(selectedCategory) === String(cat.id);
                 return (
@@ -268,7 +304,7 @@ export default function CategoriesPage() {
                     }`}
                   >
                     <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-purple-500 dark:text-purple-400'}`} />
-                    <span>{cat.name}</span>
+                    <span>{localizedName}</span>
                   </motion.button>
                 );
               })}
@@ -305,6 +341,18 @@ export default function CategoriesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map((evt) => {
                 const isSaved = savedIds.has(evt.id);
+                const evtTitle = evt.title; // عنوان الفعالية غالباً محتوى حر (لا يوجد قاموس ترجمة له تلقائياً)
+                const evtLocation = evt.location;
+                const evtCategoryName = localize(
+                  {
+                    name: evt.category_name,
+                    name_ar: evt.category_name_ar,
+                    name_ku: evt.category_name_ku,
+                    name_en: evt.category_name_en,
+                  },
+                  'name'
+                );
+
                 return (
                   <motion.div
                     whileHover={{ y: -6, scale: 1.01 }}
@@ -316,14 +364,14 @@ export default function CategoriesPage() {
                     <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-900">
                       <img
                         src={evt.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80'}
-                        alt={evt.title}
+                        alt={evtTitle}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#13091f] via-transparent to-black/20" />
                       
-                      {evt.category_name && (
+                      {evtCategoryName && (
                         <span className={`absolute top-3 ${isRtl ? 'right-3' : 'left-3'} px-3 py-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-bold text-purple-200`}>
-                          {evt.category_name}
+                          {evtCategoryName}
                         </span>
                       )}
 
@@ -348,17 +396,17 @@ export default function CategoriesPage() {
                           <span>{formatDate(evt.date_time)}</span>
                         </div>
                         <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-purple-400 transition line-clamp-1">
-                          {evt.title}
+                          {evtTitle}
                         </h3>
                         <div className="space-y-1 text-xs text-slate-500 dark:text-purple-300/70">
-                          <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-purple-400 shrink-0" /><span className="line-clamp-1">{evt.location || '—'}</span></p>
+                          <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-purple-400 shrink-0" /><span className="line-clamp-1">{evtLocation || '—'}</span></p>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-purple-900/20">
                         <div>
-                          <span className="text-[10px] text-slate-400 dark:text-purple-300/50 block">Category</span>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{evt.category_name || '—'}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-purple-300/50 block">{t.category}</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">{evtCategoryName || '—'}</span>
                         </div>
                         <motion.button 
                           whileHover={{ scale: 1.03 }}

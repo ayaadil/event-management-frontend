@@ -16,6 +16,8 @@ import {
   Plus,
   Sun,
   Moon,
+  CalendarCog,
+  ShieldCheck,
 } from 'lucide-react';
 import Logo from './logo';
 import { useAuth } from '../../context/AuthContext';
@@ -39,6 +41,9 @@ const sidebarTranslations = {
     createTitle: 'Create your own event',
     createDesc: 'Share moments, sell tickets, and connect with people',
     createBtn: 'Create event',
+    myEvents: 'My Events',
+    adminUsers: 'Manage Users',
+    adminCategories: 'Manage Categories',
   },
   'العربية (Arabic)': {
     home: 'الرئيسية',
@@ -56,6 +61,9 @@ const sidebarTranslations = {
     createTitle: 'أنشئ فعاليتك الخاصة',
     createDesc: 'شارك اللحظات، بع التذاكر، وتواصل مع الناس',
     createBtn: 'إنشاء فعالية',
+    myEvents: 'فعالياتي',
+    adminUsers: 'إدارة المستخدمين',
+    adminCategories: 'إدارة الفئات',
   },
   'Kurdish (کوردی)': {
     home: 'سەرەکی',
@@ -73,11 +81,14 @@ const sidebarTranslations = {
     createTitle: 'بۆنەی خۆت دروست بکە',
     createDesc: 'ساتەکان هاوبەش بکە، بلیت بفرۆشە و پەیوەندی بکە',
     createBtn: 'دروستکردنی بۆنە',
+    myEvents: 'چالاکییەکانم',
+    adminUsers: 'بەڕێوەبردنی بەکارهێنەران',
+    adminCategories: 'بەڕێوەبردنی پۆلەکان',
   },
 };
 
 export default function Sidebar() {
-  const { logout } = useAuth();
+  const { logout, isOrganizer, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
@@ -104,7 +115,16 @@ export default function Sidebar() {
     { to: '/categories', label: t.categories, icon: Grid3x3 },
     { to: '/saved', label: t.saved, icon: Heart },
     { to: '/profile', label: t.profile, icon: User },
+    // يظهر بس للمنظم أو الأدمن
+    ...(isOrganizer || isAdmin ? [{ to: '/my-events', label: t.myEvents, icon: CalendarCog }] : []),
   ];
+
+  const adminItems = isAdmin
+    ? [
+        { to: '/admin/users', label: t.adminUsers, icon: ShieldCheck },
+        { to: '/admin/categories', label: t.adminCategories, icon: Grid3x3 },
+      ]
+    : [];
 
   const footerItems = [
     { to: '/settings', label: t.setting, icon: Settings },
@@ -171,6 +191,37 @@ export default function Sidebar() {
               </motion.div>
             );
           })}
+
+          {adminItems.length > 0 && (
+            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-white/5 space-y-1">
+              {adminItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.to;
+                return (
+                  <motion.div key={item.to} variants={itemVariants}>
+                    <NavLink
+                      to={item.to}
+                      className="relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors duration-200"
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="sidebar-active-pill"
+                          transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                          className="absolute inset-0 rounded-xl bg-purple-50 dark:bg-white/15 shadow-xs"
+                        />
+                      )}
+                      <span className={`relative z-10 flex items-center ${isActive ? 'text-purple-700 dark:text-white' : 'text-slate-600 dark:text-gray-300'}`}>
+                        <Icon size={16} />
+                      </span>
+                      <span className={`relative z-10 ${isActive ? 'text-purple-700 dark:text-white font-semibold' : 'text-slate-600 dark:text-gray-300'}`}>
+                        {item.label}
+                      </span>
+                    </NavLink>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </motion.nav>
       </div>
 
@@ -232,39 +283,41 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          whileHover={{ scale: 1.02 }}
-          className="p-4 rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-950 dark:from-[#2A1868] dark:to-[#1D104A] border border-purple-500/20 text-center space-y-2 shadow-md text-white"
-        >
-          <motion.h4
-            animate={{ opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="text-xs font-semibold text-white"
+        {!isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            whileHover={{ scale: 1.02 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-950 dark:from-[#2A1868] dark:to-[#1D104A] border border-purple-500/20 text-center space-y-2 shadow-md text-white"
           >
-            {t.createTitle}
-          </motion.h4>
-          <p className="text-[10px] text-purple-200 leading-tight">
-            {t.createDesc}
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            type="button"
-            onClick={() => navigate('/create-event')}
-            className="w-full py-2 px-3 mt-1 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-xl border border-white/20 transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-          >
-            <motion.span
-              animate={{ rotate: [0, 90, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1.5 }}
+            <motion.h4
+              animate={{ opacity: [0.85, 1, 0.85] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="text-xs font-semibold text-white"
             >
-              <Plus size={14} />
-            </motion.span>
-            <span>{t.createBtn}</span>
-          </motion.button>
-        </motion.div>
+              {t.createTitle}
+            </motion.h4>
+            <p className="text-[10px] text-purple-200 leading-tight">
+              {t.createDesc}
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => navigate('/create-event')}
+              className="w-full py-2 px-3 mt-1 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-xl border border-white/20 transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <motion.span
+                animate={{ rotate: [0, 90, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 1.5 }}
+              >
+                <Plus size={14} />
+              </motion.span>
+              <span>{t.createBtn}</span>
+            </motion.button>
+          </motion.div>
+        )}
       </div>
     </motion.aside>
   );

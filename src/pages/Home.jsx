@@ -30,6 +30,20 @@ const iconForCategory = (name = '') => {
   return CATEGORY_ICONS[formattedName] || MoreHorizontal;
 };
 
+// قاموس ترجمة أسماء الفئات القادمة من الـ API
+const CATEGORY_NAME_TRANSLATIONS = {
+  technology: { ar: 'تكنولوجيا', ku: 'تەکنەلۆژیا', en: 'Technology' },
+  business: { ar: 'أعمال', ku: 'بازرگانی', en: 'Business' },
+  music: { ar: 'موسيقى', ku: 'میوزیک', en: 'Music' },
+  design: { ar: 'تصميم', ku: 'دیزاین', en: 'Design' },
+  marketing: { ar: 'تسويق', ku: 'مارکێتینگ', en: 'Marketing' },
+  gaming: { ar: 'ألعاب', ku: 'یاری', en: 'Gaming' },
+  'art & culture': { ar: 'فن وثقافة', ku: 'هونەر و کەلتوور', en: 'Art & Culture' },
+  education: { ar: 'تعليم', ku: 'پەروەردە', en: 'Education' },
+  'family & kids': { ar: 'العائلة والأطفال', ku: 'خێزان و منداڵان', en: 'Family & Kids' },
+  fashion: { ar: 'أزياء', ku: 'فاشن', en: 'Fashion' },
+};
+
 // دالة لتوليد لون تدرجي خاص بالأيقونة فقط لكل فئة
 const getCategoryIconColor = (categoryName = '') => {
   const name = categoryName.toLowerCase().trim();
@@ -37,7 +51,7 @@ const getCategoryIconColor = (categoryName = '') => {
     case 'technology':
       return 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)';
     case 'business':
-      return 'linear-gradient(135deg, #4E65FF 0%, #92EFFD 100%)';
+      return 'linear-gradient(135deg, #31192c 0%, #a2a248 100%)';
     case 'music':
       return 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
     case 'design':
@@ -70,6 +84,14 @@ export default function Home() {
   const isArabic = language?.includes('Arabic') || language?.includes('العربية') || language === 'ar';
   const isRtl = isArabic || isKurdish;
 
+  // دالة ترجمة اسم الفئة القادم من الـ API حسب اللغة الحالية
+  const translateCategory = (name = '') => {
+    const key = name.toLowerCase().trim();
+    const entry = CATEGORY_NAME_TRANSLATIONS[key];
+    if (!entry) return name;
+    return isKurdish ? entry.ku : isArabic ? entry.ar : entry.en;
+  };
+
   const t = isKurdish ? {
     greeting: `سڵاو، ${user?.name || ''} 👋`,
     subtitle: 'بۆنە سەرنجڕاکێشەکان کە لە دەوروبەرت ڕوودەدەن بدۆزەرەوە.',
@@ -78,6 +100,7 @@ export default function Home() {
     categoriesTitle: 'پۆلەکان', seeAll: 'بینینی هەمووی',
     upcomingTitle: 'بۆنە داهاتووەکان', viewAll: 'بینینی هەمووی',
     noResults: 'هیچ بۆنەیەک نەدۆزراوەتەوە', loading: 'چاوەڕوانبە...',
+    category: 'پۆل',
   } : isArabic ? {
     greeting: `أهلاً، ${user?.name || ''} 👋`,
     subtitle: 'اكتشف فعاليات مذهلة تجري حولك.',
@@ -86,6 +109,7 @@ export default function Home() {
     categoriesTitle: 'التصنيفات', seeAll: 'عرض الكل',
     upcomingTitle: 'الفعاليات القادمة', viewAll: 'عرض الكل',
     noResults: 'لا توجد فعاليات مطابقة للبحث', loading: 'جارٍ التحميل...',
+    category: 'التصنيف',
   } : {
     greeting: `Hello, ${user?.name || ''} 👋`,
     subtitle: 'Discover amazing events happening around you.',
@@ -94,6 +118,7 @@ export default function Home() {
     categoriesTitle: 'Categories', seeAll: 'See all',
     upcomingTitle: 'Upcoming Events', viewAll: 'View All',
     noResults: 'No events found', loading: 'Loading...',
+    category: 'Category',
   };
 
   const [categories, setCategories] = useState([]);
@@ -257,7 +282,7 @@ export default function Home() {
                 <div className="space-y-1.5 text-xs text-slate-500 dark:text-purple-300/70 pt-1">
                   <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-purple-400" /> {featured.location || '—'}</p>
                   {featured.category_name && (
-                    <p className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> {featured.category_name}</p>
+                    <p className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> {translateCategory(featured.category_name)}</p>
                   )}
                 </div>
               </div>
@@ -300,7 +325,7 @@ export default function Home() {
                   >
                     <Icon className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-800 dark:text-white">{cat.name}</span>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-white">{translateCategory(cat.name)}</span>
                 </motion.div>
               );
             })}
@@ -334,7 +359,7 @@ export default function Home() {
                       
                       {evt.category_name && (
                         <span className={`absolute top-3 ${isRtl ? 'right-3' : 'left-3'} px-3 py-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-bold text-purple-200`}>
-                          {evt.category_name}
+                          {translateCategory(evt.category_name)}
                         </span>
                       )}
 
@@ -364,8 +389,8 @@ export default function Home() {
 
                       <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-purple-900/20">
                         <div>
-                          <span className="text-[10px] text-slate-400 dark:text-purple-300/50 block">Category</span>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{evt.category_name || '—'}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-purple-300/50 block">{t.category}</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">{evt.category_name ? translateCategory(evt.category_name) : '—'}</span>
                         </div>
                         <motion.button 
                           whileHover={{ scale: 1.03 }}

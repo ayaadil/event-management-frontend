@@ -1,16 +1,69 @@
 // src/pages/admin/Users.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, ShieldCheck, Search } from 'lucide-react';
+import { Trash2, ShieldCheck, Search, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
 const ROLES = ['user', 'organizer', 'admin'];
 
+const t = {
+  ar: {
+    pageTitle: 'إدارة المستخدمين',
+    totalUsers: 'إجمالي المستخدمين:',
+    searchPlaceholder: 'ابحث بالاسم أو البريد الإلكتروني...',
+    loading: 'جاري تحميل المستخدمين...',
+    name: 'الاسم',
+    email: 'البريد الإلكتروني',
+    role: 'الدور',
+    joinedDate: 'تاريخ الانضمام',
+    actions: 'الإجراءات',
+    deleteTitle: 'حذف المستخدم',
+    adminsOnly: 'للمشرفين فقط.',
+    roles: { user: 'مستخدم', organizer: 'منظّم', admin: 'مشرف' },
+  },
+  ku: {
+    pageTitle: 'بەڕێوەبردنی بەکارهێنەران',
+    totalUsers: 'کۆی بەکارهێنەران:',
+    searchPlaceholder: 'گەڕان بە ناو یان ئیمەیل...',
+    loading: 'بارکردنی بەکارهێنەران...',
+    name: 'ناو',
+    email: 'ئیمەیل',
+    role: 'ڕۆڵ',
+    joinedDate: 'بەرواری چوونەژوورەوە',
+    actions: 'کردارەکان',
+    deleteTitle: 'سڕینەوەی بەکارهێنەر',
+    adminsOnly: 'تەنها بۆ بەڕێوەبەران.',
+    roles: { user: 'بەکارهێنەر', organizer: 'ڕێکخەر', admin: 'بەڕێوەبەر' },
+  },
+  en: {
+    pageTitle: 'Manage Users',
+    totalUsers: 'Total users:',
+    searchPlaceholder: 'Search by name or email...',
+    loading: 'Loading users...',
+    name: 'Name',
+    email: 'Email',
+    role: 'Role',
+    joinedDate: 'Joined Date',
+    actions: 'Actions',
+    deleteTitle: 'Delete user',
+    adminsOnly: 'Admins only.',
+    roles: { user: 'user', organizer: 'organizer', admin: 'admin' },
+  },
+};
+
 export default function AdminUsers() {
   const { language } = useLanguage();
   const { user: currentUser, isAdmin } = useAuth();
-  const isRtl = language?.includes('Arabic') || language?.includes('العربية') || language === 'ar';
+
+  const isKurdish = language?.includes('Kurdish') || language?.includes('کوردی') || language === 'ku';
+  const isArabic = language?.includes('Arabic') || language?.includes('العربية') || language === 'ar';
+  const isRtl = isArabic || isKurdish;
+
+  let text = t.en;
+  if (isArabic) text = t.ar;
+  else if (isKurdish) text = t.ku;
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,8 +100,8 @@ export default function AdminUsers() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-slate-400 text-sm p-8 text-center">
-        Admins only.
+      <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-slate-400 text-sm p-8 text-center">
+        {text.adminsOnly}
       </div>
     );
   }
@@ -57,73 +110,142 @@ export default function AdminUsers() {
     (u) => u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.15,
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: "easeOut" }
+    }
+  };
+
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-50 dark:bg-[#0b0712] text-slate-900 dark:text-white p-6 md:p-10 font-sans space-y-6 max-w-5xl mx-auto transition-colors duration-200">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="min-h-screen bg-slate-50 dark:bg-[#0b0712] text-slate-900 dark:text-white p-6 md:p-10 font-sans space-y-6 max-w-5xl mx-auto transition-colors duration-200"
+    >
+      {/* Top Header & Search Bar with Animation */}
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#13091f] p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-purple-900/40 shadow-sm"
+      >
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold font-serif flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-purple-500" /> Manage Users
+          <h1 className="text-xl md:text-2xl font-bold font-serif flex items-center gap-2.5">
+            <motion.div
+              animate={{ rotate: [0, 15, -15, 15, 0], scale: [1, 1.1, 1] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ShieldCheck className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </motion.div>
+            {text.pageTitle}
           </h1>
-          <p className="text-slate-600 dark:text-purple-300/60 text-xs mt-1">{users.length} total users</p>
+          <p className="text-slate-500 dark:text-purple-300/60 text-xs mt-1">
+            {text.totalUsers} <span className="font-semibold text-purple-600 dark:text-purple-400">{users.length}</span>
+          </p>
         </div>
         <div className="relative w-full md:w-72">
-          <Search className={`w-4 h-4 absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-purple-500`} />
+          <Search className={`w-4 h-4 absolute ${isRtl ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-purple-500`} />
           <input
-            type="text" placeholder="Search by name or email..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            className={`w-full bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 ${isRtl ? 'pr-9 pl-4' : 'pl-9 pr-4'} text-xs focus:outline-none focus:border-purple-500`}
+            type="text"
+            placeholder={text.searchPlaceholder}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl py-2.5 ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'} text-xs focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all text-slate-900 dark:text-white`}
           />
         </div>
-      </div>
+      </motion.div>
 
+      {/* Table Container */}
       {loading ? (
-        <div className="text-center py-16 text-slate-500 dark:text-slate-400 text-sm">Loading...</div>
-      ) : (
-        <div className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-2xl overflow-hidden shadow-md dark:shadow-xl">
-          <table className="w-full text-xs">
-            <thead className="bg-slate-50 dark:bg-[#0b0712] text-slate-500 dark:text-purple-300/60">
-              <tr>
-                <th className="p-4 text-start">Name</th>
-                <th className="p-4 text-start">Email</th>
-                <th className="p-4 text-start">Role</th>
-                <th className="p-4 text-start">Joined</th>
-                <th className="p-4"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u) => (
-                <tr key={u.id} className="border-t border-slate-100 dark:border-purple-900/20">
-                  <td className="p-4 font-semibold">{u.name}</td>
-                  <td className="p-4 text-slate-500 dark:text-slate-400">{u.email}</td>
-                  <td className="p-4">
-                    <select
-                      value={u.role}
-                      disabled={u.id === currentUser?.id || savingId === u.id}
-                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                      className="bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-lg px-2 py-1.5 text-xs cursor-pointer disabled:opacity-50"
-                    >
-                      {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                    </select>
-                  </td>
-                  <td className="p-4 text-slate-500 dark:text-slate-400">
-                    {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      disabled={u.id === currentUser?.id}
-                      className="text-rose-500 hover:text-rose-600 disabled:opacity-30 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer"
-                      title="Delete user"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="text-center py-24 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-purple-300 text-sm">
+          <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+          <span>{text.loading}</span>
         </div>
+      ) : (
+        <motion.div
+          variants={itemVariants}
+          className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-purple-900/40 rounded-2xl overflow-hidden shadow-sm"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-100/70 dark:bg-[#0b0712]/80 text-slate-500 dark:text-purple-300/70 border-b border-slate-200/80 dark:border-purple-900/30">
+                <tr>
+                  <th className="p-4 font-semibold">{text.name}</th>
+                  <th className="p-4 font-semibold">{text.email}</th>
+                  <th className="p-4 font-semibold">{text.role}</th>
+                  <th className="p-4 font-semibold">{text.joinedDate}</th>
+                  <th className="p-4 text-center font-semibold">{text.actions}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-purple-900/20">
+                <AnimatePresence>
+                  {filtered.map((u, index) => (
+                    <motion.tr
+                      key={u.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ backgroundColor: "rgba(168, 85, 247, 0.04)" }}
+                      className="transition-colors"
+                    >
+                      <td className="p-4 font-bold text-slate-800 dark:text-white flex items-center gap-2.5">
+                        <motion.div
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-500/30 flex items-center justify-center text-purple-600 dark:text-purple-300 text-[11px] font-bold shrink-0 shadow-sm"
+                        >
+                          {u.name?.charAt(0).toUpperCase()}
+                        </motion.div>
+                        {u.name}
+                      </td>
+                      <td className="p-4 text-slate-500 dark:text-purple-200/70">{u.email}</td>
+                      <td className="p-4">
+                        <select
+                          value={u.role}
+                          disabled={u.id === currentUser?.id || savingId === u.id}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                          className="bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/50 rounded-lg px-2.5 py-1.5 text-xs cursor-pointer disabled:opacity-50 focus:outline-none focus:border-purple-500 transition-all text-slate-700 dark:text-purple-200 font-medium"
+                        >
+                          {ROLES.map((r) => <option key={r} value={r}>{text.roles[r]}</option>)}
+                        </select>
+                      </td>
+                      <td className="p-4 text-slate-500 dark:text-purple-200/60 font-mono">
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="p-4 text-center">
+                        <motion.button
+                          whileHover={{ scale: 1.2, rotate: 10 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => handleDelete(u.id)}
+                          disabled={u.id === currentUser?.id}
+                          className="text-rose-500 hover:text-rose-600 disabled:opacity-25 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer transition-colors inline-flex items-center justify-center"
+                          title={text.deleteTitle}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }

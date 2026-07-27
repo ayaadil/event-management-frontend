@@ -6,7 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
-const ROLES = ['user', 'organizer', 'admin'];
+const ROLES = ['user', 'organizer_pending', 'organizer', 'admin'];
 
 const t = {
   ar: {
@@ -21,7 +21,7 @@ const t = {
     actions: 'الإجراءات',
     deleteTitle: 'حذف المستخدم',
     adminsOnly: 'للمشرفين فقط.',
-    roles: { user: 'مستخدم', organizer: 'منظّم', admin: 'مشرف' },
+    roles: { user: 'مستخدم', organizer_pending: '⏳ طلب معلّق', organizer: 'منظّم', admin: 'مشرف' },
   },
   ku: {
     pageTitle: 'بەڕێوەبردنی بەکارهێنەران',
@@ -35,7 +35,7 @@ const t = {
     actions: 'کردارەکان',
     deleteTitle: 'سڕینەوەی بەکارهێنەر',
     adminsOnly: 'تەنها بۆ بەڕێوەبەران.',
-    roles: { user: 'بەکارهێنەر', organizer: 'ڕێکخەر', admin: 'بەڕێوەبەر' },
+    roles: { user: 'بەکارهێنەر', organizer_pending: '⏳ داواکاری چاوەڕوان', organizer: 'ڕێکخەر', admin: 'بەڕێوەبەر' },
   },
   en: {
     pageTitle: 'Manage Users',
@@ -49,7 +49,7 @@ const t = {
     actions: 'Actions',
     deleteTitle: 'Delete user',
     adminsOnly: 'Admins only.',
-    roles: { user: 'user', organizer: 'organizer', admin: 'admin' },
+    roles: { user: 'user', organizer_pending: '⏳ Pending request', organizer: 'organizer', admin: 'admin' },
   },
 };
 
@@ -201,7 +201,7 @@ export default function AdminUsers() {
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                       whileHover={{ backgroundColor: "rgba(168, 85, 247, 0.04)" }}
-                      className="transition-colors"
+                      className={`transition-colors ${u.role === 'organizer_pending' ? 'bg-amber-50 dark:bg-amber-500/10' : ''}`}
                     >
                       <td className="p-4 font-bold text-slate-800 dark:text-white flex items-center gap-2.5">
                         <motion.div
@@ -218,7 +218,16 @@ export default function AdminUsers() {
                           value={u.role}
                           disabled={u.id === currentUser?.id || savingId === u.id}
                           onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          className="bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/50 rounded-lg px-2.5 py-1.5 text-xs cursor-pointer disabled:opacity-50 focus:outline-none focus:border-purple-500 transition-all text-slate-700 dark:text-purple-200 font-medium"
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium border cursor-pointer disabled:opacity-50 transition-all
+${
+  u.role === 'admin'
+    ? 'bg-red-100 text-red-700 border-red-500'
+    : u.role === 'organizer'
+    ? 'bg-green-100 text-green-700 border-green-400'
+    : u.role === 'organizer_pending'
+    ? 'bg-yellow-100 text-yellow-900 border-yellow-800'
+    : 'bg-blue-100 text-blue-700 border-blue-500'
+}`}
                         >
                           {ROLES.map((r) => <option key={r} value={r}>{text.roles[r]}</option>)}
                         </select>

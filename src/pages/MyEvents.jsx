@@ -6,7 +6,7 @@ import { Calendar, MapPin, Edit3, Trash2, Plus, X, Save } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { formatDate } from '../utils/format';
+import { formatDate, encodeEndTime, extractEndTime, stripEndTimeMarker } from '../utils/format';
 
 const STATUS_OPTIONS = ['draft', 'published', 'cancelled', 'completed'];
 
@@ -31,7 +31,7 @@ export default function MyEvents() {
     title: isArabic ? 'فعالياتي' : isKurdish ? 'چالاکییەکانم' : 'My Events',
     subtitle: isArabic ? 'إدارة الفعاليات التي أنشأتها' : isKurdish ? 'بەڕێوەبردنی چالاکییە دروستکراوەکانت' : 'Manage the events you created',
     newEvent: isArabic ? 'فعالية جديدة' : isKurdish ? 'چالاکی نوێ' : 'New Event',
-    noEvents: isArabic ? 'لم تنشئ أي فعالية بعد' : isKurdish ? 'هێشتا هیچ چالاکییەکت دروست نەکردووە' : "You haven't created any events yet",
+    noEvents: isArabic ? 'لا توجد فعاليات في هذا القسم' : isKurdish ? 'هیچ چالاکییەک لەم بەشەدا نییە' : "No events found in this section",
     edit: isArabic ? 'تعديل' : isKurdish ? 'دەستکاری' : 'Edit',
     delete: isArabic ? 'حذف' : isKurdish ? 'سڕینەوە' : 'Delete',
     save: isArabic ? 'حفظ' : isKurdish ? 'پاشەکەوتکردن' : 'Save',
@@ -41,8 +41,13 @@ export default function MyEvents() {
     status: isArabic ? 'الحالة' : isKurdish ? 'دۆخ' : 'Status',
     title_f: isArabic ? 'العنوان' : isKurdish ? 'ناونیشان' : 'Title',
     location: isArabic ? 'الموقع' : isKurdish ? 'شوێن' : 'Location',
-    dateTime: isArabic ? 'التاريخ والوقت' : isKurdish ? 'بەروار و کات' : 'Date & Time',
+    capacity: isArabic ? 'السعة' : isKurdish ? 'توانای وەرگرتن' : 'Capacity',
+    capacityHint: isArabic ? 'إجمالي عدد المقاعد/التذاكر المتاحة لهذه الفعالية' : isKurdish ? 'کۆی گشتی ژمارەی بلیتی بەردەست بۆ ئەم چالاکییە' : 'Total number of tickets available for this event',
+    dateTime: isArabic ? 'تاريخ ووقت البداية' : isKurdish ? 'بەروار و کاتی دەستپێک' : 'Start Date & Time',
+    endTime: isArabic ? 'وقت الانتهاء' : isKurdish ? 'کاتی کۆتایی' : 'End Time',
+    endTimeError: isArabic ? 'وقت الانتهاء يجب أن يكون بعد وقت البداية' : isKurdish ? 'کاتی کۆتایی دەبێت دوای کاتی دەستپێک بێت' : 'End time must be after the start time',
     quickStatus: isArabic ? 'تغيير الحالة' : isKurdish ? 'گۆڕینی دۆخ' : 'Change status',
+    all: isArabic ? 'الكل' : isKurdish ? 'هەموو' : 'All',
   };
 
   const statusLabels = {
@@ -53,12 +58,16 @@ export default function MyEvents() {
   };
 
   const [events, setEvents] = useState([]);
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [editError, setEditError] = useState('');
+  const [editTicketTypeId, setEditTicketTypeId] = useState(null);
+  const [editLoadingCapacity, setEditLoadingCapacity] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
-
+  const [ticketTypes, setTicketTypes] = useState([]);
   const canAccess = isOrganizer || isAdmin;
 
   const loadEvents = useCallback(async () => {
@@ -77,21 +86,71 @@ export default function MyEvents() {
 
   useEffect(() => { if (canAccess) loadEvents(); }, [canAccess, loadEvents]);
 
-  const openEdit = (event) => {
+  const openEdit = async (event) => {
     setEditingEvent(event);
+    setEditError('');
+
     setEditForm({
       title: event.title || '',
-      description: event.description || '',
+      description: stripEndTimeMarker(event.description),
       location: event.location || '',
-      date_time: event.date_time ? new Date(event.date_time).toISOString().slice(0, 16) : '',
-      status: event.status || 'draft',
+      date_time: event.date_time
+        ? new Date(event.date_time).toISOString().slice(0, 16)
+        : '',
+      end_time: (() => {
+        const stored = extractEndTime(event.description);
+        return stored
+          ? new Date(stored).toISOString().slice(11, 16)
+          : '';
+      })(),
+      capacity: '',
     });
+
+    try {
+      setEditLoadingCapacity(true);
+      const types = await api.getTicketTypesByEvent(event.id);
+      setTicketTypes(types || []);
+      if (types && types.length > 0) {
+        setEditTicketTypeId(types[0].id);
+        setEditForm((prev) => ({
+          ...prev,
+          capacity: types[0].capacity,
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEditLoadingCapacity(false);
+    }
+  };
+
+  const buildEndDateTime = (form) => {
+    if (!form.end_time || !form.date_time) return undefined;
+    const datePart = form.date_time.split('T')[0];
+    return `${datePart}T${form.end_time}`;
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setEditError('');
+
+    const endDateTime = buildEndDateTime(editForm);
+    if (endDateTime && new Date(endDateTime) <= new Date(editForm.date_time)) {
+      setEditError(t.endTimeError);
+      return;
+    }
+
     try {
-      await api.updateEvent(editingEvent.id, editForm);
+      const { capacity, end_time, ...eventFields } = editForm;
+      await api.updateEvent(editingEvent.id, {
+        ...eventFields,
+        description: encodeEndTime(editForm.description, endDateTime),
+      });
+
+      if (editTicketTypeId && capacity !== '') {
+        await api.updateTicketType(editTicketTypeId, { capacity: Number(capacity) });
+      }
+
       setEditingEvent(null);
       loadEvents();
     } catch (err) {
@@ -134,6 +193,11 @@ export default function MyEvents() {
     );
   }
 
+  const filteredEvents = events.filter((event) => {
+    if (selectedFilter === 'all') return true;
+    return event.status === selectedFilter;
+  });
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
@@ -146,6 +210,7 @@ export default function MyEvents() {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="max-w-6xl mx-auto px-4 py-8 overflow-hidden font-sans">
+      {/* Header Section */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <motion.h1
@@ -160,11 +225,12 @@ export default function MyEvents() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-slate-600 dark:text-purple-300/70 text-sm md:text-base leading-relaxed mt-2"
+            className="text-purple-600 dark:text-purple-300 text-sm md:text-base leading-relaxed mt-1"
           >
             {t.subtitle}
           </motion.p>
         </div>
+
         <motion.button
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -172,24 +238,59 @@ export default function MyEvents() {
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => navigate('/create-event')}
-          className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition shadow-lg shadow-purple-600/20 dark:shadow-purple-900/40 cursor-pointer inline-flex items-center gap-2 w-fit"
+          className="bg-purple-800 hover:bg-purple-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition shadow-lg shadow-purple-600/20 dark:shadow-purple-900/40 cursor-pointer inline-flex items-center gap-2 w-fit"
         >
           <Plus className="w-4 h-4" /> {t.newEvent}
         </motion.button>
+      </div>
+
+      {/* Refined Filter Tabs Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setSelectedFilter('all')}
+          className={`text-xs font-semibold px-4 py-2.5 rounded-2xl transition-all cursor-pointer whitespace-nowrap shadow-sm ${
+            selectedFilter === 'all'
+              ? 'bg-gradient-to-r from-purple-800 to-purple-600 text-white shadow-purple-600/30 ring-2 ring-purple-400/30'
+              : 'bg-white dark:bg-[#13091f]/80 text-slate-600 dark:text-purple-200/80 border border-slate-200/80 dark:border-purple-900/40 hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/20'
+          }`}
+        >
+          {t.all} <span className="opacity-75 ms-1">({events.length})</span>
+        </motion.button>
+        {STATUS_OPTIONS.map((status) => {
+          const count = events.filter((e) => e.status === status).length;
+          const isActive = selectedFilter === status;
+          return (
+            <motion.button
+              key={status}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setSelectedFilter(status)}
+              className={`text-xs font-semibold px-4 py-2.5 rounded-2xl transition-all cursor-pointer whitespace-nowrap shadow-sm ${
+                isActive
+                  ? 'bg-gradient-to-r from-purple-800 to-purple-600 text-white shadow-purple-600/30 ring-2 ring-purple-400/30'
+                  : 'bg-white dark:bg-[#13091f]/80 text-slate-600 dark:text-purple-200/80 border border-slate-200/80 dark:border-purple-900/40 hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/20'
+              }`}
+            >
+              {statusLabels[status]} <span className="opacity-75 ms-1">({count})</span>
+            </motion.button>
+          );
+        })}
       </div>
 
       {loading ? (
         <div className="text-center py-16 text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">
           {t.loading}
         </div>
-      ) : events.length > 0 ? (
+      ) : filteredEvents.length > 0 ? (
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
         >
-          {events.map((event) => (
+          {filteredEvents.map((event) => (
             <motion.div
               key={event.id}
               variants={itemVariants}
@@ -332,6 +433,16 @@ export default function MyEvents() {
                   />
                 </div>
                 <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.endTime}</label>
+                  <input
+                    type="time"
+                    value={editForm.end_time || ''}
+                    onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                  />
+                </div>
+                {editError && <p className="text-xs text-rose-500">{editError}</p>}
+                <div>
                   <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.location}</label>
                   <input
                     type="text"
@@ -340,17 +451,44 @@ export default function MyEvents() {
                     className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/30 focus:outline-none focus:border-purple-500 transition"
                   />
                 </div>
+
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.status}</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">
+                    Ticket Type
+                  </label>
                   <select
-                    value={editForm.status}
-                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+                    value={editTicketTypeId || ""}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      setEditTicketTypeId(id);
+                      const type = ticketTypes.find((t) => t.id === id);
+                      if (type) {
+                        setEditForm((prev) => ({
+                          ...prev,
+                          capacity: type.capacity,
+                        }));
+                      }
+                    }}
+                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white"
                   >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{statusLabels[s]}</option>
+                    {ticketTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.ticket_name}
+                      </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.capacity}</label>
+                  <input
+                    type="number"
+                    disabled={editLoadingCapacity}
+                    value={editForm.capacity}
+                    onChange={(e) => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition disabled:opacity-50"
+                  />
+                  <p className="text-[10px] text-slate-400 dark:text-purple-300/40 mt-1">{t.capacityHint}</p>
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <button

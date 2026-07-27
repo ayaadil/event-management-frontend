@@ -29,7 +29,6 @@ const sidebarTranslations = {
     home: 'Home',
     explore: 'Explore',
     tickets: 'My Tickets',
-    categories: 'Categories',
     saved: 'Save Events',
     profile: 'Profile',
     setting: 'Setting',
@@ -41,6 +40,11 @@ const sidebarTranslations = {
     createTitle: 'Create your own event',
     createDesc: 'Share moments, sell tickets, and connect with people',
     createBtn: 'Create event',
+    becomeOrgTitle: 'Want to host events?',
+    becomeOrgDesc: 'Request organizer access to start creating your own events',
+    becomeOrgBtn: 'Request organizer access',
+    becomeOrgSending: 'Sending request...',
+    becomeOrgPending: 'Request pending approval',
     myEvents: 'My Events',
     adminUsers: 'Manage Users',
     adminCategories: 'Manage Categories',
@@ -49,7 +53,6 @@ const sidebarTranslations = {
     home: 'الرئيسية',
     explore: 'استكشاف',
     tickets: 'تذاكري',
-    categories: 'الفئات',
     saved: 'الفعاليات المحفوظة',
     profile: 'الملف الشخصي',
     setting: 'الإعدادات',
@@ -61,6 +64,11 @@ const sidebarTranslations = {
     createTitle: 'أنشئ فعاليتك الخاصة',
     createDesc: 'شارك اللحظات، بع التذاكر، وتواصل مع الناس',
     createBtn: 'إنشاء فعالية',
+    becomeOrgTitle: 'تريد تنظيم فعاليات؟',
+    becomeOrgDesc: 'اطلب صلاحية منظم لتقدر تنشئ فعالياتك الخاصة',
+    becomeOrgBtn: 'طلب صلاحية منظم',
+    becomeOrgSending: 'جارٍ إرسال الطلب...',
+    becomeOrgPending: 'طلبك قيد المراجعة',
     myEvents: 'فعالياتي',
     adminUsers: 'إدارة المستخدمين',
     adminCategories: 'إدارة الفئات',
@@ -69,7 +77,6 @@ const sidebarTranslations = {
     home: 'سەرەکی',
     explore: 'گەڕان',
     tickets: 'بلیتەکانم',
-    categories: 'پۆلەکان',
     saved: 'بۆنە پاشەکەوتکراوەکان',
     profile: 'پڕۆفایل',
     setting: 'ڕێکخستن',
@@ -81,6 +88,11 @@ const sidebarTranslations = {
     createTitle: 'بۆنەی خۆت دروست بکە',
     createDesc: 'ساتەکان هاوبەش بکە، بلیت بفرۆشە و پەیوەندی بکە',
     createBtn: 'دروستکردنی بۆنە',
+    becomeOrgTitle: 'دەتەوێت چالاکی ڕێکبخەیت؟',
+    becomeOrgDesc: 'داواکاری دەسەڵاتی ڕێکخەر بکە بۆ دروستکردنی چالاکییەکانی خۆت',
+    becomeOrgBtn: 'داواکردنی دەسەڵاتی ڕێکخەر',
+    becomeOrgSending: 'ناردنی داواکاری...',
+    becomeOrgPending: 'داواکارییەکەت چاوەڕوانی پێداچوونەوەیە',
     myEvents: 'چالاکییەکانم',
     adminUsers: 'بەڕێوەبردنی بەکارهێنەران',
     adminCategories: 'بەڕێوەبردنی پۆلەکان',
@@ -88,11 +100,25 @@ const sidebarTranslations = {
 };
 
 export default function Sidebar() {
-  const { logout, isOrganizer, isAdmin } = useAuth();
+  const { user, logout, isOrganizer, isAdmin, updateProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
   const { isDarkMode, toggleTheme } = useTheme();
+  const [requestingOrganizer, setRequestingOrganizer] = React.useState(false);
+
+  const isPendingOrganizer = user?.role === 'organizer_pending';
+
+  const handleRequestOrganizer = async () => {
+    setRequestingOrganizer(true);
+    try {
+      await updateProfile({ role: 'organizer_pending' });
+    } catch (err) {
+      console.error('Failed to request organizer access', err);
+    } finally {
+      setRequestingOrganizer(false);
+    }
+  };
 
   const handleUserLogout = () => {
     logout();
@@ -112,7 +138,6 @@ export default function Sidebar() {
     { to: '/home', label: t.home, icon: Home },
     { to: '/explore', label: t.explore, icon: Compass },
     { to: '/tickets', label: t.tickets, icon: Ticket },
-    { to: '/categories', label: t.categories, icon: Grid3x3 },
     { to: '/saved', label: t.saved, icon: Heart },
     { to: '/profile', label: t.profile, icon: User },
     // يظهر بس للمنظم أو الأدمن
@@ -283,7 +308,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {!isAdmin && (
+        {(isOrganizer || isAdmin) && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -316,6 +341,44 @@ export default function Sidebar() {
               </motion.span>
               <span>{t.createBtn}</span>
             </motion.button>
+          </motion.div>
+        )}
+
+        {!(isOrganizer || isAdmin) && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            whileHover={{ scale: 1.02 }}
+           className="p-4 rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-950 dark:from-[#2A1868] dark:to-[#1D104A] border border-purple-500/20 text-center space-y-2 shadow-md text-white"
+          >
+            <motion.h4
+              animate={{ opacity: [0.85, 1, 0.85] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="text-xs font-semibold text-white"
+            >
+              {t.becomeOrgTitle}
+            </motion.h4>
+            <p className="text-[10px] text-purple-200 leading-tight">
+              {t.becomeOrgDesc}
+            </p>
+            {isPendingOrganizer ? (
+              <div className="w-full py-2 px-3 mt-1 bg-white/10 text-purple-200 text-xs font-medium rounded-xl border border-white/10 flex items-center justify-center gap-1.5">
+                {t.becomeOrgPending}
+              </div>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                disabled={requestingOrganizer}
+                onClick={handleRequestOrganizer}
+                className="w-full py-2 px-3 mt-1 bg-white text-[#6D4AA2] hover:bg-[#F7F3FB] text-xs font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>{requestingOrganizer ? t.becomeOrgSending : t.becomeOrgBtn}</span>
+              </motion.button>
+            )}
           </motion.div>
         )}
       </div>

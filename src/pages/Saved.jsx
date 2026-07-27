@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookmarkX, ArrowRight, Trash2, Calendar, MapPin, Ticket } from 'lucide-react';
+import { BookmarkX, ArrowRight, Trash2, Calendar, MapPin, Ticket, Heart } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { formatDate } from '../utils/format';
@@ -86,18 +86,38 @@ export default function Saved() {
       dir={isRtl ? 'rtl' : 'ltr'}
       className="max-w-4xl mx-auto px-4 py-8 overflow-hidden font-sans"
     >
-      {/* Header Section */}
+      {/* Header Section with Animated Red Heart Icon */}
       <motion.div 
         variants={itemVariants}
         className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white">
-            {t.title}
-          </h1>
-          <p className="text-slate-600 dark:text-purple-300/70 text-sm md:text-base leading-relaxed mt-2">
-            {t.subtitle}
-          </p>
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ 
+              scale: [1, 1.2, 1, 1.2, 1],
+              rotate: [0, 10, -10, 10, 0]
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity, 
+              repeatType: "loop",
+              ease: "easeInOut" 
+            }}
+            className="p-2.5 rounded-2xl bg-red-100 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 flex items-center justify-center shadow-sm"
+          >
+            <Heart className="w-6 h-6 text-red-600 dark:text-red-500 fill-current" />
+          </motion.div>
+          <div className="flex flex-col">
+            <h1 className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white">
+              {t.title}
+            </h1>
+            <motion.p 
+              variants={itemVariants}
+              className="text-purple-600 dark:text-purple-300 text-sm md:text-base font-medium mt-1 block w-full"
+            >
+              {t.subtitle}
+            </motion.p>
+          </div>
         </div>
         <motion.span 
           whileHover={{ scale: 1.05 }}

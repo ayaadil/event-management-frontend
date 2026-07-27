@@ -93,7 +93,7 @@ export default function Home() {
   };
 
   const t = isKurdish ? {
-    greeting: `سڵاو، ${user?.name || ''} 👋`,
+    greeting: `سڵاو، ${user?.name || ''}`,
     subtitle: 'بۆنە سەرنجڕاکێشەکان کە لە دەوروبەرت ڕوودەدەن بدۆزەرەوە.',
     searchPlaceholder: 'گەڕان بەدوای بۆنەکان...',
     featuredBadge: 'تایبەت', getTicket: 'بلیت وەرگرە',
@@ -102,7 +102,7 @@ export default function Home() {
     noResults: 'هیچ بۆنەیەک نەدۆزراوەتەوە', loading: 'چاوەڕوانبە...',
     category: 'پۆل',
   } : isArabic ? {
-    greeting: `أهلاً، ${user?.name || ''} 👋`,
+    greeting: `أهلاً، ${user?.name || ''}`,
     subtitle: 'اكتشف فعاليات مذهلة تجري حولك.',
     searchPlaceholder: 'ابحث عن فعاليات...',
     featuredBadge: 'مميز', getTicket: 'احصل على التذكرة',
@@ -111,7 +111,7 @@ export default function Home() {
     noResults: 'لا توجد فعاليات مطابقة للبحث', loading: 'جارٍ التحميل...',
     category: 'التصنيف',
   } : {
-    greeting: `Hello, ${user?.name || ''} 👋`,
+    greeting: `Hello, ${user?.name || ''}`,
     subtitle: 'Discover amazing events happening around you.',
     searchPlaceholder: 'Search events...',
     featuredBadge: 'Featured', getTicket: 'Get Ticket',
@@ -144,10 +144,28 @@ export default function Home() {
     setLoading(true);
     const timer = setTimeout(() => {
       api
-        .getEvents({ search: searchQuery || undefined, status: 'published', limit: 6 })
-        .then((data) => setEvents(data.events || []))
-        .catch(() => setEvents([]))
-        .finally(() => setLoading(false));
+        .getEvents({ search: searchQuery || undefined, status: 'published', limit: 20 })
+        .then((data) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          // فلترة الفعاليات لتشمل فقط القادمة أو التي تاريخها اليوم فما بعد
+          const upcomingOnly = (data.events || [])
+            .filter(event => {
+              const eventDate = new Date(event.date_time);
+              eventDate.setHours(0, 0, 0, 0);
+              return eventDate >= today;
+            })
+            .sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
+
+          setEvents(upcomingOnly);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setEvents([]);
+          setLoading(false);
+        });
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -194,8 +212,24 @@ export default function Home() {
               className="text-2xl md:text-3xl font-bold font-serif text-slate-900 dark:text-white flex items-center gap-2"
             >
               {t.greeting}
+              <motion.span
+                role="img"
+                aria-label="waving hand"
+                animate={{ rotate: [0, 18, -10, 18, -10, 0] }}
+                transition={{
+                  duration: 2.2,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                  repeatDelay: 0.8,
+                }}
+                whileHover={{ scale: 1.35 }}
+                whileTap={{ scale: 0.9, rotate: 360 }}
+                style={{ display: 'inline-block', cursor: 'pointer', transformOrigin: '70% 70%' }}
+              >
+                👋
+              </motion.span>
             </motion.h1>
-            <p className="text-xs text-slate-500 dark:text-purple-300/60">
+            <p className="text-purple-600 dark:text-purple-300 text-sm md:text-base leading-relaxed mt-1">
               {t.subtitle}
             </p>
           </div>
@@ -301,11 +335,11 @@ export default function Home() {
           </motion.section>
         )}
 
-        {/* Categories Section (Unified Card Background with Unique Icon Colors) */}
+        {/* Categories Section */}
         <section>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold font-serif text-slate-900 dark:text-white">{t.categoriesTitle}</h3>
-            <button onClick={() => navigate('/categories')} className="text-xs text-purple-600 dark:text-purple-300 hover:underline font-medium cursor-pointer">{t.seeAll}</button>
+            <button onClick={() => navigate('/explore')} className="text-xs text-purple-600 dark:text-purple-300 hover:underline font-medium cursor-pointer">{t.seeAll}</button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -316,7 +350,7 @@ export default function Home() {
                   whileHover={{ y: -4, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   key={cat.id} 
-                  onClick={() => navigate(`/categories?category=${cat.id}`)} 
+                  onClick={() => navigate(`/explore?category=${cat.id}`)} 
                   className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-[#2a1745] rounded-2xl p-4 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 text-center shadow-sm group"
                 >
                   <div 
@@ -396,7 +430,8 @@ export default function Home() {
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.97 }}
                           onClick={(e) => { e.stopPropagation(); navigate(`/events/${evt.id}`); }} 
-                          className="px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-600 text-purple-600 dark:text-purple-200 hover:text-white rounded-xl text-xs font-semibold border border-purple-200 dark:border-purple-800/40 transition-all duration-300 cursor-pointer flex items-center gap-1.5"
+                          className="px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-600
+                          text-purple-600 dark:text-purple-200 hover:text-white rounded-xl text-xs font-semibold border border-purple-200 dark:border-purple-800/40 transition-all duration-300 cursor-pointer flex items-center gap-1.5"
                         >
                           {t.getTicket}
                         </motion.button>

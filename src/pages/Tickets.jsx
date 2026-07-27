@@ -18,7 +18,7 @@ const translations = {
     saveTicket: 'Save Ticket', locationText: 'Location', dateText: 'Date',
     admitOne: 'OFFICIAL ENTRY PASS', qrModalTitle: 'DIGITAL ACCESS PASS', close: 'Close',
     payNow: 'Pay Now', paying: 'Paying...', cancelBooking: 'Cancel Booking',
-    canceling: 'Canceling...', pending: 'Payment pending', confirmed: 'Confirmed', loading: 'Loading...',
+    canceling: 'Canceling...', pending: 'Payment pending', confirmed: 'Confirmed', passed: 'Passed', loading: 'Loading...',
     totalPrice: 'Total Price',
   },
   'العربية (Arabic)': {
@@ -31,7 +31,7 @@ const translations = {
     saveTicket: 'حفظ التذكرة', locationText: 'الموقع', dateText: 'التاريخ',
     admitOne: 'تذكرة دخول رسمية', qrModalTitle: 'تصريح الدخول الرقمي', close: 'إغلاق',
     payNow: 'ادفع الآن', paying: 'جارٍ الدفع...', cancelBooking: 'إلغاء الحجز',
-    canceling: 'جارٍ الإلغاء...', pending: 'بانتظار الدفع', confirmed: 'مؤكدة', loading: 'جارٍ التحميل...',
+    canceling: 'جارٍ الإلغاء...', pending: 'بانتظار الدفع', confirmed: 'مؤكدة', passed: 'Passed', loading: 'جارٍ التحميل...',
     totalPrice: 'السعر الإجمالي',
   },
   'Kurdish (کوردی)': {
@@ -44,7 +44,7 @@ const translations = {
     saveTicket: 'پاشەکەوتکردنی تیکت', locationText: 'شوێن', dateText: 'بەڕێوەچوون',
     admitOne: 'تیکتی فەرمی چوونەژوورەوە', qrModalTitle: 'مۆڵەتی چوونەژوورەوەی ڕێژەیی', close: 'داخستن',
     payNow: 'پارەدان ئێستا', paying: 'پارەدان...', cancelBooking: 'هەڵوەشاندنەوەی فەرمان',
-    canceling: 'هەڵوەشاندنەوە...', pending: 'چاوەڕوانی پارەدان', confirmed: 'پەسەندکراو', loading: 'بارکردن...',
+    canceling: 'هەڵوەشاندنەوە...', pending: 'چاوەڕوانی پارەدان', confirmed: 'پەسەندکراو', passed: 'Passed', loading: 'بارکردن...',
     totalPrice: 'کۆی گشتی نرخ',
   },
 };
@@ -158,17 +158,17 @@ export default function Tickets() {
     >
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-         <div>
-  <motion.h1 
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: 0.1 }}
-    className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white"
-  >
-    {text.pageTitle}
-  </motion.h1>
-  <p className="text-purple-600 dark:text-purple-400">{text.pageSubtitle}</p>
-</div>
+        <div>
+          <motion.h1 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white"
+          >
+            {text.pageTitle}
+          </motion.h1>
+          <p className="text-purple-600 dark:text-purple-400">{text.pageSubtitle}</p>
+        </div>
 
         <div className="flex items-center gap-2 bg-white dark:bg-[#150a21] p-1.5 rounded-2xl border border-slate-200 dark:border-purple-900/30 w-fit shadow-sm dark:shadow-none">
           {tabsList.map((tab) => (
@@ -196,6 +196,8 @@ export default function Tickets() {
           {filteredTickets.map((booking) => {
             const ev = booking.event || {};
             const dateBadge = formatDateBadge(ev.date_time);
+            const ticketIsPast = isPast(booking);
+
             return (
               <motion.div 
                 whileHover={{ y: -4, scale: 1.01 }}
@@ -203,7 +205,7 @@ export default function Tickets() {
                 key={booking.id} 
                 className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl overflow-hidden flex flex-col sm:flex-row hover:border-purple-400 dark:hover:border-purple-500/50 transition-all duration-300 shadow-md dark:shadow-xl group"
               >
-                <div className="relative sm:w-2/5 h-48 sm:h-auto overflow-hidden">
+                <div className="relative sm:w-2/5 h-48 sm:h-auto overflow-hidden shrink-0">
                   <img
                     src={ev.image_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80'}
                     alt={booking.event_title}
@@ -216,13 +218,29 @@ export default function Tickets() {
 
                 <div className="flex-1 p-5 flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
-                    <span className={`text-[10px] tracking-wider font-bold px-2.5 py-1 rounded-md border inline-block ${
-                      booking.status === 'pending'
-                        ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20'
-                        : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20'
-                    }`}>
-                      {booking.ticket_name} · {booking.status === 'pending' ? text.pending : text.confirmed}
-                    </span>
+                    {/* عرض حالة التذكرة بحيث تعرض Passed إذا كانت منتهية */}
+                    <div>
+                      <span className={`text-[10px] tracking-wider font-bold px-2.5 py-1 rounded-md border inline-block ${
+                        booking.status === 'pending'
+                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/25'
+                          : booking.status === 'cancelled'
+                          ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/25'
+                          : ticketIsPast
+                          ? 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/40'
+                          : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/25'
+                      }`}>
+                        {booking.ticket_name} · {
+                          booking.status === 'pending' 
+                            ? text.pending 
+                            : booking.status === 'cancelled' 
+                            ? text.cancelled 
+                            : ticketIsPast 
+                            ? text.passed 
+                            : text.confirmed
+                        }
+                      </span>
+                    </div>
+
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition line-clamp-1">
                       {booking.event_title}
                     </h3>
@@ -265,7 +283,7 @@ export default function Tickets() {
                       >
                         <CreditCard className="w-4 h-4" /> {payingId === booking.id ? text.paying : text.payNow}
                       </motion.button>
-                    ) : (
+                    ) : !ticketIsPast ? (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -275,7 +293,7 @@ export default function Tickets() {
                       >
                         <QrCode className="w-5 h-5" />
                       </motion.button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </motion.div>
@@ -380,7 +398,7 @@ export default function Tickets() {
                     </div>
                   </div>
 
-                  {selectedTicket.status === 'confirmed' && (
+                  {selectedTicket.status === 'confirmed' && !isPast(selectedTicket) && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

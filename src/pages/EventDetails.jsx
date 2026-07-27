@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
-import { formatDate, formatTime } from '../utils/format';
+import { formatDate, formatTimeRange, isEventPast, extractEndTime, stripEndTimeMarker } from '../utils/format';
 
 // قاموس ترجمة ثابت لأسماء التصنيفات الشائعة (fallback لو الباك اند ما يرجع category_name_ar/ku)
 const CATEGORY_TRANSLATIONS = {
@@ -48,6 +48,9 @@ const t = {
     openEmail: 'فتح البريد الإلكتروني',
     selectTicket: 'الرجاء اختيار تذكرة واحدة على الأقل',
     bookingFailed: 'فشل الحجز',
+    eventEnded: 'انتهت الفعالية',
+    eventEndedDesc: 'لم يعد الحجز متاحاً لأن هذه الفعالية قد انتهت.',
+    linkCopied: 'تم نسخ رابط الفعالية بنجاح!',
   },
   ku: {
     loading: 'چاوەڕوانبە...',
@@ -70,6 +73,9 @@ const t = {
     openEmail: 'کردنەوەی ئیمەیل',
     selectTicket: 'تکایە لانیکەم یەک پەتاسە هەڵبژێرە',
     bookingFailed: 'رزۆرکردن سەرکەوتوو نەبوو',
+    eventEnded: 'چالاکییەکە تەواو بووە',
+    eventEndedDesc: 'ئیتر ناتوانیت پەتاسە وەربگریت چونکە ئەم چالاکییە تەواو بووە.',
+    linkCopied: 'بەستەری چالاکییەکە کۆپی کرا!',
   },
   en: {
     loading: 'Loading...',
@@ -92,6 +98,9 @@ const t = {
     openEmail: 'Open Email',
     selectTicket: 'Please select at least one ticket',
     bookingFailed: 'Booking failed',
+    eventEnded: 'Event Ended',
+    eventEndedDesc: 'Booking is no longer available because this event has already ended.',
+    linkCopied: 'Event link copied to clipboard!',
   },
 };
 
@@ -119,6 +128,34 @@ export default function EventDetails() {
   const [quantities, setQuantities] = useState({});
   const [booking, setBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
+  const [copySuccess, setCopySuccess] = useState('');
+
+  // دالة المشاركة الفعالة (تعتمد على Web Share API أو النسخ المباشر)
+  const handleShare = async () => {
+    const shareData = {
+      title: event?.title || 'Event',
+      text: stripEndTimeMarker(event?.description) || '',
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopySuccess(text.linkCopied);
+        setTimeout(() => setCopySuccess(''), 3000);
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+      }
+    }
+  };
 
   // يرجع اسم التصنيف مترجماً: من قاعدة البيانات أولاً، ثم من القاموس الثابت
   const localizeCategory = (categoryObj) => {
@@ -193,6 +230,12 @@ export default function EventDetails() {
 
   const handleGetTicket = async () => {
     setBookingError('');
+
+    if (isEventPast(event?.date_time, extractEndTime(event?.description))) {
+      setBookingError(text.eventEndedDesc);
+      return;
+    }
+
     const selections = ticketTypes.filter((tt) => (quantities[tt.id] || 0) > 0);
     if (selections.length === 0) {
       setBookingError(text.selectTicket);
@@ -247,6 +290,9 @@ export default function EventDetails() {
     category_name_en: event.category_name_en,
   });
 
+  const eventEndTime = extractEndTime(event.description);
+  const isPast = isEventPast(event.date_time, eventEndTime) || event.status === 'cancelled';
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 15 }}
@@ -256,6 +302,13 @@ export default function EventDetails() {
       className="min-h-screen bg-slate-50 dark:bg-[#0b0712] text-slate-900 dark:text-white p-4 md:p-8 font-sans max-w-5xl mx-auto space-y-6 transition-colors duration-200"
     >
       
+      {/* رسالة نجاح نسخ الرابط */}
+      {copySuccess && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-purple-600 text-white text-xs px-4 py-2 rounded-xl shadow-lg transition-all">
+          {copySuccess}
+        </div>
+      )}
+
       {/* البطاقة الرئيسية */}
       <div className="relative rounded-3xl overflow-hidden border border-slate-200/80 dark:border-[#2a1745] bg-white dark:bg-[#13091f] shadow-xl transition-colors duration-200">
         
@@ -284,7 +337,7 @@ export default function EventDetails() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigator.clipboard.writeText(window.location.href)}
+                onClick={handleShare}
                 className="p-2.5 bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/10 rounded-xl text-white transition cursor-pointer shadow-sm"
               >
                 <Share2 className="w-5 h-5" />
@@ -319,7 +372,7 @@ export default function EventDetails() {
             </p>
           </div>
 
-          {/* شبكة المعلومات (التاريخ، الوقت، التصنيف، السعة الكاملة) */}
+          {/* شبكة المعلومات */}
           <div className="grid grid-cols-2 gap-y-3 gap-x-6 py-3 border-y border-slate-200 dark:border-purple-900/30 text-xs text-slate-600 dark:text-purple-200">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
@@ -331,7 +384,7 @@ export default function EventDetails() {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>{formatTime(event.date_time)}</span>
+              <span>{formatTimeRange(event.date_time, eventEndTime)}</span>
             </div>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
@@ -342,16 +395,16 @@ export default function EventDetails() {
           </div>
 
           {/* وصف الفعالية */}
-          {event.description && (
+          {stripEndTimeMarker(event.description) && (
             <div className="space-y-1.5">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">{text.aboutEvent}</h3>
               <p className="text-xs text-slate-600 dark:text-purple-200/70 leading-relaxed">
-                {event.description}
+                {stripEndTimeMarker(event.description)}
               </p>
             </div>
           )}
 
-          {/* قسم الفنانين (The Artists) */}
+          {/* قسم الفنانين */}
           {speakers.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">{text.theArtists}</h3>
@@ -402,7 +455,7 @@ export default function EventDetails() {
                       <div className="flex items-center gap-2 bg-white dark:bg-[#0b0712] px-2.5 py-1 rounded-xl border border-slate-200 dark:border-purple-500/20 shadow-sm">
                         <motion.button
                           whileTap={{ scale: 0.9 }}
-                          disabled={soldOut}
+                          disabled={soldOut || isPast}
                           onClick={() => handleQtyChange(tt.id, -1, tt.available_tickets)}
                           className="p-1 text-slate-700 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer disabled:opacity-30"
                         >
@@ -413,7 +466,7 @@ export default function EventDetails() {
                         </span>
                         <motion.button
                           whileTap={{ scale: 0.9 }}
-                          disabled={soldOut}
+                          disabled={soldOut || isPast}
                           onClick={() => handleQtyChange(tt.id, 1, tt.available_tickets)}
                           className="p-1 text-slate-700 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer disabled:opacity-30"
                         >
@@ -441,15 +494,21 @@ export default function EventDetails() {
               </motion.button>
             ) : <div />}
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleGetTicket}
-              disabled={booking || ticketTypes.length === 0}
-              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-2.5 px-8 rounded-xl transition shadow-lg shadow-purple-600/20 dark:shadow-purple-900/40 flex items-center justify-center gap-2 text-xs cursor-pointer"
-            >
-              <Ticket className="w-4 h-4" /> {booking ? text.booking : text.getTicket} {totalPrice > 0 ? `($${totalPrice})` : ''}
-            </motion.button>
+            {isPast ? (
+              <div className="w-full sm:w-auto bg-slate-100 dark:bg-purple-950/40 border border-slate-200 dark:border-purple-900/50 text-slate-500 dark:text-purple-300/70 font-bold py-2.5 px-8 rounded-xl flex items-center justify-center gap-2 text-xs">
+                <Ticket className="w-4 h-4" /> {text.eventEnded}
+              </div>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGetTicket}
+                disabled={booking || ticketTypes.length === 0}
+                className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-2.5 px-8 rounded-xl transition shadow-lg shadow-purple-600/20 dark:shadow-purple-900/40 flex items-center justify-center gap-2 text-xs cursor-pointer"
+              >
+                <Ticket className="w-4 h-4" /> {booking ? text.booking : text.getTicket} {totalPrice > 0 ? `($${totalPrice})` : ''}
+              </motion.button>
+            )}
           </div>
 
         </div>

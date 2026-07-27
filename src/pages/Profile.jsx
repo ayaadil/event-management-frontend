@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Mail, Calendar, Heart,
-  Ticket, Edit3, ShieldCheck, LogOut, Save, X, KeyRound, CheckCircle2
+  Ticket, Edit3, ShieldCheck, LogOut, Save, X, KeyRound, CheckCircle2, ArrowLeft
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +55,8 @@ export default function ProfilePage() {
 
   const uiTexts = {
     ar: {
+      profileTitle: 'الملف الشخصي',
+      subtitle: 'إدارة معلومات حسابك الشخصي وإعدادات الأمان الخاصة بك',
       editProfile: 'تعديل الملف الشخصي', saveChanges: 'حفظ التعديلات', cancel: 'إلغاء',
       myTickets: 'تذاكري', savedEvents: 'الفعاليات المحفوظة', attended: 'تم الحضور',
       tabInfo: 'المعلومات الشخصية', tabSecurity: 'أمان الحساب', fullName: 'الاسم الكامل',
@@ -67,6 +69,8 @@ export default function ProfilePage() {
       roles: { user: 'مستخدم', organizer: 'منظم فعاليات', admin: 'مدير النظام' },
     },
     ku: {
+      profileTitle: 'پڕۆفایل',
+      subtitle: 'بەڕێوەبردنی زانیارییەکانی هەژمارەکەت و ئاسایش',
       editProfile: 'دەستکاری پڕۆفایل', saveChanges: 'پاشەکەوتکردن', cancel: 'هەڵوەشاندنەوە',
       myTickets: 'پەتاسەکانم', savedEvents: 'پاشەکەوتکراوەکان', attended: 'بەشداربوو',
       tabInfo: 'زانیاری کەسی', tabSecurity: 'ئاسایشی هەژمار', fullName: 'ناوی تەواو',
@@ -79,6 +83,8 @@ export default function ProfilePage() {
       roles: { user: 'بەکارهێنەر', organizer: 'ڕێکخەری چالاکی', admin: 'بەڕێوەبەری سیستەم' },
     },
     en: {
+      profileTitle: 'Profile',
+      subtitle: 'Manage your personal account information and security settings',
       editProfile: 'Edit Profile', saveChanges: 'Save Changes', cancel: 'Cancel',
       myTickets: 'My Tickets', savedEvents: 'Saved Events', attended: 'Attended',
       tabInfo: 'Personal Info', tabSecurity: 'Account Security', fullName: 'Full Name',
@@ -128,7 +134,7 @@ export default function ProfilePage() {
   };
 
   const memberSinceYear = user?.created_at ? new Date(user.created_at).getFullYear() : null;
-  const infoInputClass = "w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-300 dark:border-purple-700/50 rounded-2xl px-3.5 py-2.5 text-sm text-slate-800 dark:text-white mt-1 focus:outline-none focus:border-purple-500 transition shadow-sm";
+  const infoInputClass = "w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-300 dark:border-purple-700/50 rounded-2xl px-3.5 py-2.5 text-sm text-slate-800 dark:text-white mt-1 focus:outline-none focus:border-purple-500 transition shadow-sm font-sans";
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -149,7 +155,7 @@ export default function ProfilePage() {
       initial="hidden"
       animate="visible"
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="w-full min-h-screen bg-slate-50 dark:bg-[#0b0712] text-slate-800 dark:text-white p-4 md:p-8 font-sans selection:bg-purple-500 selection:text-white relative overflow-hidden"
+      className="max-w-4xl mx-auto px-4 py-8 overflow-hidden font-sans"
     >
       {/* Toast Notification */}
       <AnimatePresence>
@@ -166,12 +172,51 @@ export default function ProfilePage() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header Section: Arrow with box, User Icon without box */}
+      <motion.div 
+        variants={itemVariants}
+        className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-3">
+          {/* Back Button with Arrow inside a box */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate(-1)}
+            className="p-2.5 rounded-2xl bg-purple-100 dark:bg-[#DD3E93]/15 hover:bg-purple-200 dark:hover:bg-[#DD3E93]/25 border border-purple-200 dark:border-white/10 text-purple-700 dark:text-[#F0ABFC] transition cursor-pointer shadow-sm flex items-center justify-center"
+            title="Go back"
+          >
+            <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
+          </motion.button>
 
+          {/* User Icon without box */}
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+            className="text-purple-600 dark:text-[#F0ABFC] flex items-center justify-center"
+          >
+            <User className="w-7 h-7" />
+          </motion.div>
+
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold font-serif text-slate-900 dark:text-white">
+              {t.profileTitle}
+            </h1>
+            <motion.p
+              variants={itemVariants}
+              className="text-purple-600 dark:text-purple-300 text-sm md:text-base leading-relaxed mt-1"
+            >
+              {t.subtitle}
+            </motion.p>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="space-y-6">
         {/* Header Banner */}
         <motion.div 
           variants={itemVariants}
-          className="relative bg-gradient-to-r from-purple-100 via-purple-50 to-white dark:from-[#1e0c30] dark:via-[#2a1240] dark:to-[#170a2c] rounded-3xl p-6 md:p-8 border border-purple-200 dark:border-purple-900/40 shadow-xl dark:shadow-2xl overflow-hidden"
+          className="relative bg-gradient-to-r from-purple-100 via-purple-50 to-white dark:from-[#2E1B4F] dark:via-[#2E1B4F]/90 dark:to-[#1F1035] rounded-3xl p-6 md:p-8 border border-purple-200 dark:border-white/10 shadow-xl overflow-hidden"
         >
           <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-6">
 
@@ -188,7 +233,7 @@ export default function ProfilePage() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-center md:justify-start gap-2">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-wide text-slate-900 dark:text-white">{user?.name}</h1>
+                  <h2 className="text-xl md:text-2xl font-bold tracking-wide text-slate-900 dark:text-white font-sans">{user?.name}</h2>
                   <span className="bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-medium capitalize">
                     {user?.role}
                   </span>
@@ -227,7 +272,10 @@ export default function ProfilePage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setActiveTab('info');
+                    setIsEditing(true);
+                  }}
                   className="flex-1 md:flex-initial flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition shadow-lg shadow-purple-900/20 dark:shadow-purple-900/40 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" /> {t.editProfile}
@@ -243,45 +291,45 @@ export default function ProfilePage() {
             whileHover={{ y: -5, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate('/tickets')} 
-            className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-4 text-center hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-lg"
+            className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-4 text-center hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-lg"
           >
-            <Ticket className="w-5 h-5 text-purple-500 dark:text-purple-400 mx-auto mb-1.5" />
+            <Ticket className="w-5 h-5 text-purple-500 dark:text-[#F0ABFC] mx-auto mb-1.5" />
             <span className="block text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{stats.tickets}</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">{t.myTickets}</span>
+            <span className="text-[11px] text-slate-500 dark:text-[#B6A6D6]">{t.myTickets}</span>
           </motion.div>
           
           <motion.div 
             whileHover={{ y: -5, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate('/saved')} 
-            className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-4 text-center hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-lg"
+            className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-4 text-center hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-lg"
           >
-            <Heart className="w-5 h-5 text-fuchsia-500 dark:text-fuchsia-400 mx-auto mb-1.5" />
+            <Heart className="w-5 h-5 text-fuchsia-500 dark:text-[#F0ABFC] mx-auto mb-1.5" />
             <span className="block text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{stats.saved}</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">{t.savedEvents}</span>
+            <span className="text-[11px] text-slate-500 dark:text-[#B6A6D6]">{t.savedEvents}</span>
           </motion.div>
 
           <motion.div 
             whileHover={{ y: -5, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate('/tickets?filter=attended')}
-            className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-4 text-center hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-lg"
+            className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-4 text-center hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-lg"
           >
-            <Calendar className="w-5 h-5 text-purple-500 dark:text-purple-400 mx-auto mb-1.5" />
+            <Calendar className="w-5 h-5 text-purple-500 dark:text-[#F0ABFC] mx-auto mb-1.5" />
             <span className="block text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{stats.attended}</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">{t.attended}</span>
+            <span className="text-[11px] text-slate-500 dark:text-[#B6A6D6]">{t.attended}</span>
           </motion.div>
         </motion.div>
 
         {/* Tabs Navigation */}
-        <motion.div variants={itemVariants} className="flex border-b border-slate-200 dark:border-purple-900/40 gap-6 text-sm font-medium z-20 relative">
-          <button type="button" onClick={() => setActiveTab('info')} className={`pb-3 transition relative cursor-pointer ${activeTab === 'info' ? 'text-purple-600 dark:text-purple-300 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+        <motion.div variants={itemVariants} className="flex border-b border-slate-200 dark:border-white/10 gap-6 text-sm font-medium z-20 relative">
+          <button type="button" onClick={() => setActiveTab('info')} className={`pb-3 transition relative cursor-pointer ${activeTab === 'info' ? 'text-purple-600 dark:text-[#F0ABFC] font-bold' : 'text-slate-500 dark:text-[#B6A6D6] hover:text-slate-700 dark:hover:text-white'}`}>
             {t.tabInfo}
-            {activeTab === 'info' && <motion.span layoutId="activeTabIndicator" className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-full" />}
+            {activeTab === 'info' && <motion.span layoutId="activeTabIndicator" className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 dark:bg-[#F0ABFC] rounded-full" />}
           </button>
-          <button type="button" onClick={() => setActiveTab('security')} className={`pb-3 transition relative cursor-pointer ${activeTab === 'security' ? 'text-purple-600 dark:text-purple-300 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+          <button type="button" onClick={() => setActiveTab('security')} className={`pb-3 transition relative cursor-pointer ${activeTab === 'security' ? 'text-purple-600 dark:text-[#F0ABFC] font-bold' : 'text-slate-500 dark:text-[#B6A6D6] hover:text-slate-700 dark:hover:text-white'}`}>
             {t.tabSecurity}
-            {activeTab === 'security' && <motion.span layoutId="activeTabIndicator" className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-full" />}
+            {activeTab === 'security' && <motion.span layoutId="activeTabIndicator" className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 dark:bg-[#F0ABFC] rounded-full" />}
           </button>
         </motion.div>
 
@@ -296,12 +344,12 @@ export default function ProfilePage() {
               transition={{ duration: 0.3 }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
-              <div className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-5 flex items-center gap-4 shadow-xl">
-                <div className="p-3 bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/40 rounded-2xl text-purple-600 dark:text-purple-400">
+              <div className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-5 flex items-center gap-4 shadow-xl">
+                <div className="p-3 bg-purple-100 dark:bg-[#DD3E93]/15 border border-purple-200 dark:border-white/10 rounded-2xl text-purple-600 dark:text-[#F0ABFC]">
                   <User className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <span className="text-[11px] text-purple-600/60 dark:text-purple-300/60 block font-medium">{t.fullName}</span>
+                  <span className="text-[11px] text-purple-600/70 dark:text-[#B6A6D6] block font-medium">{t.fullName}</span>
                   {isEditing ? (
                     <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={infoInputClass} />
                   ) : (
@@ -310,12 +358,12 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-5 flex items-center gap-4 shadow-xl">
-                <div className="p-3 bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/40 rounded-2xl text-purple-600 dark:text-purple-400">
+              <div className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-5 flex items-center gap-4 shadow-xl">
+                <div className="p-3 bg-purple-100 dark:bg-[#DD3E93]/15 border border-purple-200 dark:border-white/10 rounded-2xl text-purple-600 dark:text-[#F0ABFC]">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <span className="text-[11px] text-purple-600/60 dark:text-purple-300/60 block font-medium">{t.emailAddress}</span>
+                  <span className="text-[11px] text-purple-600/70 dark:text-[#B6A6D6] block font-medium">{t.emailAddress}</span>
                   {isEditing ? (
                     <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className={infoInputClass} />
                   ) : (
@@ -338,28 +386,32 @@ export default function ProfilePage() {
               <motion.div 
                 whileHover={{ y: -3, scale: 1.01 }}
                 onClick={() => setShowPasswordModal(true)} 
-                className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-5 flex items-center justify-between hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-xl"
+                className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-5 flex items-center justify-between hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-xl"
               >
                 <div className="flex items-center gap-4">
-                  <ShieldCheck className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                  <div className="p-3 bg-purple-100 dark:bg-[#DD3E93]/15 border border-purple-200 dark:border-white/10 rounded-2xl text-purple-600 dark:text-[#F0ABFC]">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
                   <div>
                     <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t.changePassword}</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.changePasswordDesc}</p>
+                    <p className="text-xs text-slate-500 dark:text-[#B6A6D6]">{t.changePasswordDesc}</p>
                   </div>
                 </div>
-                <span className="text-xs text-purple-600 dark:text-purple-400 hover:underline">{t.update}</span>
+                <span className="text-xs text-purple-600 dark:text-[#F0ABFC] hover:underline">{t.update}</span>
               </motion.div>
 
               <motion.div 
                 whileHover={{ y: -3, scale: 1.01 }}
                 onClick={handleLogout} 
-                className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-3xl p-5 flex items-center justify-between hover:border-rose-400 dark:hover:border-rose-500/50 transition cursor-pointer shadow-xl"
+                className="bg-white dark:bg-[#2E1B4F] border border-slate-200 dark:border-white/10 rounded-3xl p-5 flex items-center justify-between hover:border-rose-400 dark:hover:border-rose-500/50 transition cursor-pointer shadow-xl"
               >
                 <div className="flex items-center gap-4">
-                  <LogOut className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+                  <div className="p-3 bg-rose-100 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/20 rounded-2xl text-rose-600 dark:text-rose-400">
+                    <LogOut className="w-5 h-5" />
+                  </div>
                   <div>
                     <h4 className="text-sm font-semibold text-rose-600 dark:text-rose-300">{t.logOut}</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.logOutDesc}</p>
+                    <p className="text-xs text-slate-500 dark:text-[#B6A6D6]">{t.logOutDesc}</p>
                   </div>
                 </div>
               </motion.div>
@@ -376,11 +428,11 @@ export default function ProfilePage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-[#150a21] border border-purple-500/30 rounded-3xl p-6 md:p-8 w-full max-w-md space-y-6 shadow-2xl relative"
+              className="bg-white dark:bg-[#2E1B4F] border border-purple-500/30 rounded-3xl p-6 md:p-8 w-full max-w-md space-y-6 shadow-2xl relative"
             >
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-purple-900/40 pb-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-purple-100 dark:bg-purple-950 border border-purple-200 dark:border-purple-800/50 rounded-2xl text-purple-600 dark:text-purple-400">
+                  <div className="p-2.5 bg-purple-100 dark:bg-[#DD3E93]/15 border border-purple-200 dark:border-white/10 rounded-2xl text-purple-600 dark:text-[#F0ABFC]">
                     <KeyRound className="w-5 h-5" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">{t.changePassword}</h3>
@@ -392,24 +444,24 @@ export default function ProfilePage() {
 
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div>
-                  <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-medium">{t.newPass}</label>
+                  <label className="text-xs text-slate-700 dark:text-[#B6A6D6] block mb-1.5 font-medium">{t.newPass}</label>
                   <input
                     type="password" required minLength={6} placeholder="••••••••"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition shadow-sm"
+                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition shadow-sm font-sans"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-700 dark:text-purple-300/80 block mb-1.5 font-medium">{t.confirmPass}</label>
+                  <label className="text-xs text-slate-700 dark:text-[#B6A6D6] block mb-1.5 font-medium">{t.confirmPass}</label>
                   <input
                     type="password" required placeholder="••••••••"
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition shadow-sm"
+                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition shadow-sm font-sans"
                   />
                 </div>
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-purple-900/40">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2.5 rounded-2xl text-xs font-semibold bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition cursor-pointer">
                     {t.cancel}
                   </motion.button>

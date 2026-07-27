@@ -21,13 +21,13 @@ import Profile from './pages/Profile';
 import Saved from './pages/Saved';
 import Settings from './pages/Settings';
 import Tickets from './pages/Tickets';
-import CategoriesPage from './pages/Categories';
 import Explore from './pages/Explore';
 import Help from './pages/Help';
 import NotificationsPage from './pages/Notifications';
 import MyEvents from './pages/MyEvents';
 import AdminUsers from './pages/admin/Users';
 import AdminCategories from './pages/admin/Categories';
+import ExploreEventsPage from './pages/Explore';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -58,7 +58,7 @@ export default function App() {
                   <Route path="/home" element={<Home />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/explore" element={<Explore />} />
-                  <Route path="/categories" element={<CategoriesPage />} />
+                  <Route path="/categories" element={<Explore />} />
                   <Route path="/saved" element={<Saved />} />
                   <Route path="/tickets" element={<Tickets />} />
                   <Route path="/profile" element={<Profile />} />

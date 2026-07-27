@@ -6,21 +6,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
-// قاموس ترجمة أسماء الفئات (نفس القاموس المستخدم بصفحة Home)
-const CATEGORY_NAME_TRANSLATIONS = {
-  technology: { ar: 'تكنولوجيا', ku: 'تەکنەلۆژیا', en: 'Technology' },
-  business: { ar: 'أعمال', ku: 'بازرگانی', en: 'Business' },
-  music: { ar: 'موسيقى', ku: 'میوزیک', en: 'Music' },
-  design: { ar: 'تصميم', ku: 'دیزاین', en: 'Design' },
-  marketing: { ar: 'تسويق', ku: 'مارکێتینگ', en: 'Marketing' },
-  gaming: { ar: 'ألعاب', ku: 'یاری', en: 'Gaming' },
-  'art & culture': { ar: 'فن وثقافة', ku: 'هونەر و کەلتوور', en: 'Art & Culture' },
-  education: { ar: 'تعليم', ku: 'پەروەردە', en: 'Education' },
-  'family & kids': { ar: 'العائلة والأطفال', ku: 'خێزان و منداڵان', en: 'Family & Kids' },
-  fashion: { ar: 'أزياء', ku: 'فاشن', en: 'Fashion' },
-  'sports & fitness': { ar: 'رياضة ولياقة', ku: 'وەرزش', en: 'Sports & Fitness' },
-};
-
 const t = {
   ar: {
     pageTitle: 'إدارة التصنيفات',
@@ -31,10 +16,7 @@ const t = {
     newTitle: 'تصنيف جديد',
     editCategory: 'تعديل التصنيف',
     deleteCategory: 'حذف التصنيف',
-    name: 'الاسم (افتراضي)',
-    nameAr: 'الاسم بالعربي',
-    nameKu: 'الاسم بالكردي',
-    nameEn: 'الاسم بالإنجليزي',
+    name: 'اسم التصنيف',
     namePlaceholder: 'أدخل اسم التصنيف...',
     iconUrl: 'رابط الأيقونة (اختياري)',
     cancel: 'إلغاء',
@@ -51,10 +33,7 @@ const t = {
     newTitle: 'بەشی نوێ',
     editCategory: 'دەستکاریکردنی بەش',
     deleteCategory: 'سڕینەوەی بەش',
-    name: 'ناو (بنەڕەت)',
-    nameAr: 'ناو بە عەرەبی',
-    nameKu: 'ناو بە کوردی',
-    nameEn: 'ناو بە ئینگلیزی',
+    name: 'ناوی بەش',
     namePlaceholder: 'ناوی بەش بنووسە...',
     iconUrl: 'لینکی ئایکۆن (ئارەزوومەندانە)',
     cancel: 'پاشگەزبوونەوە',
@@ -71,10 +50,7 @@ const t = {
     newTitle: 'New Category',
     editCategory: 'Edit category',
     deleteCategory: 'Delete category',
-    name: 'Name (default)',
-    nameAr: 'Name (Arabic)',
-    nameKu: 'Name (Kurdish)',
-    nameEn: 'Name (English)',
+    name: 'Category Name',
     namePlaceholder: 'Enter category name...',
     iconUrl: 'Icon URL (optional)',
     cancel: 'Cancel',
@@ -84,7 +60,7 @@ const t = {
   },
 };
 
-const emptyForm = { name: '', name_ar: '', name_ku: '', name_en: '', icon_url: '' };
+const emptyForm = { name: '', icon_url: '' };
 
 export default function AdminCategories() {
   const { language } = useLanguage();
@@ -97,14 +73,6 @@ export default function AdminCategories() {
   let text = t.en;
   if (isArabic) text = t.ar;
   else if (isKurdish) text = t.ku;
-
-  // دالة ترجمة اسم الفئة حسب اللغة الحالية (نفس أسلوب Home.jsx)
-  const translateCategory = (name = '') => {
-    const key = name.toLowerCase().trim();
-    const entry = CATEGORY_NAME_TRANSLATIONS[key];
-    if (!entry) return name;
-    return isKurdish ? entry.ku : isArabic ? entry.ar : entry.en;
-  };
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,9 +92,6 @@ export default function AdminCategories() {
     setEditing(cat);
     setForm({
       name: cat.name || '',
-      name_ar: cat.name_ar || '',
-      name_ku: cat.name_ku || '',
-      name_en: cat.name_en || '',
       icon_url: cat.icon_url || '',
     });
     setError('');
@@ -212,42 +177,39 @@ export default function AdminCategories() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <AnimatePresence>
-            {categories.map((cat, index) => {
-              const displayName = translateCategory(cat.name);
-              return (
-                <motion.div
-                  key={cat.id}
-                  initial={{ opacity: 0, y: 15, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3, delay: index * 0.04 }}
-                  whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                  className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-purple-900/30 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-purple-300 dark:hover:border-purple-500/40 transition-all"
-                >
-                  <span className="text-xs md:text-sm font-semibold truncate pr-2">{displayName}</span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <motion.button
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => openEdit(cat)}
-                      className="p-2 rounded-xl text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/10 cursor-pointer transition-colors"
-                      title={text.editCategory}
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleDelete(cat.id)}
-                      className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer transition-colors"
-                      title={text.deleteCategory}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {categories.map((cat, index) => (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 15, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3, delay: index * 0.04 }}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+                className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-purple-900/30 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-purple-300 dark:hover:border-purple-500/40 transition-all"
+              >
+                <span className="text-xs md:text-sm font-semibold truncate pr-2">{cat.name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <motion.button
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => openEdit(cat)}
+                    className="p-2 rounded-xl text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/10 cursor-pointer transition-colors"
+                    title={text.editCategory}
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleDelete(cat.id)}
+                    className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer transition-colors"
+                    title={text.deleteCategory}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
           </AnimatePresence>
         </div>
       )}
@@ -284,33 +246,6 @@ export default function AdminCategories() {
                     placeholder={text.namePlaceholder}
                     className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/50 rounded-2xl p-3 text-xs md:text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-slate-900 dark:text-white"
                   />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-purple-700 dark:text-purple-300 block">{text.nameAr}</label>
-                    <input
-                      type="text" dir="rtl" value={form.name_ar}
-                      onChange={(e) => setForm({ ...form, name_ar: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/50 rounded-2xl p-3 text-xs md:text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-purple-700 dark:text-purple-300 block">{text.nameKu}</label>
-                    <input
-                      type="text" dir="rtl" value={form.name_ku}
-                      onChange={(e) => setForm({ ...form, name_ku: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/50 rounded-2xl p-3 text-xs md:text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-purple-700 dark:text-purple-300 block">{text.nameEn}</label>
-                    <input
-                      type="text" value={form.name_en}
-                      onChange={(e) => setForm({ ...form, name_en: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/50 rounded-2xl p-3 text-xs md:text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-slate-900 dark:text-white"
-                    />
-                  </div>
                 </div>
 
                 <div className="space-y-1.5">

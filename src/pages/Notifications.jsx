@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, CheckCheck, Trash2, Calendar, Ticket } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, Calendar, Ticket, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function NotificationsPage() {
@@ -151,6 +151,17 @@ export default function NotificationsPage() {
         className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3">
+          {/* Back Button with Arrow */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate(-1)}
+            className="p-2.5 rounded-2xl bg-purple-100 dark:bg-[#DD3E93]/15 hover:bg-purple-200 dark:hover:bg-[#DD3E93]/25 border border-purple-200 dark:border-white/10 text-purple-700 dark:text-[#F0ABFC] transition cursor-pointer shadow-sm flex items-center justify-center"
+            title="Go back"
+          >
+            <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
+          </motion.button>
+
           <motion.div
             animate={{ 
               rotate: [0, 15, -15, 15, 0],

@@ -6,9 +6,11 @@ import { Calendar, MapPin, Edit3, Trash2, Plus, X, Save } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { formatDate, encodeEndTime, extractEndTime, stripEndTimeMarker } from '../utils/format';
+import { formatDate, encodeEndTime, extractEndTime, stripEndTimeMarker, toLocalDateTimeInputValue, toLocalTimeInputValue } from '../utils/format';
 
 const STATUS_OPTIONS = ['draft', 'published', 'cancelled', 'completed'];
+
+const PREDEFINED_TICKET_NAMES = ['VIP Pass', 'Concert Ticket', 'General Admission', 'Standard', 'Early Bird'];
 
 const statusStyles = {
   published: 'bg-emerald-500/80 text-white',
@@ -41,11 +43,6 @@ export default function MyEvents() {
     status: isArabic ? 'الحالة' : isKurdish ? 'دۆخ' : 'Status',
     title_f: isArabic ? 'العنوان' : isKurdish ? 'ناونیشان' : 'Title',
     location: isArabic ? 'الموقع' : isKurdish ? 'شوێن' : 'Location',
-    capacity: isArabic ? 'السعة' : isKurdish ? 'توانای وەرگرتن' : 'Capacity',
-    capacityHint: isArabic ? 'إجمالي عدد المقاعد/التذاكر المتاحة لهذه الفعالية' : isKurdish ? 'کۆی گشتی ژمارەی بلیتی بەردەست بۆ ئەم چالاکییە' : 'Total number of tickets available for this event',
-    dateTime: isArabic ? 'تاريخ ووقت البداية' : isKurdish ? 'بەروار و کاتی دەستپێک' : 'Start Date & Time',
-    endTime: isArabic ? 'وقت الانتهاء' : isKurdish ? 'کاتی کۆتایی' : 'End Time',
-    endTimeError: isArabic ? 'وقت الانتهاء يجب أن يكون بعد وقت البداية' : isKurdish ? 'کاتی کۆتایی دەبێت دوای کاتی دەستپێک بێت' : 'End time must be after the start time',
     quickStatus: isArabic ? 'تغيير الحالة' : isKurdish ? 'گۆڕینی دۆخ' : 'Change status',
     all: isArabic ? 'الكل' : isKurdish ? 'هەموو' : 'All',
   };
@@ -63,8 +60,9 @@ export default function MyEvents() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState('');
-  const [editTicketTypeId, setEditTicketTypeId] = useState(null);
-  const [editLoadingCapacity, setEditLoadingCapacity] = useState(false);
+  const [ticketCapacities, setTicketCapacities] = useState({}); 
+  const [ticketPrices, setTicketPrices] = useState({}); 
+  const [newTicketTypes, setNewTicketTypes] = useState([]); 
   const [deletingId, setDeletingId] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
@@ -89,45 +87,54 @@ export default function MyEvents() {
   const openEdit = async (event) => {
     setEditingEvent(event);
     setEditError('');
+    setNewTicketTypes([]);
 
     setEditForm({
       title: event.title || '',
       description: stripEndTimeMarker(event.description),
       location: event.location || '',
-      date_time: event.date_time
-        ? new Date(event.date_time).toISOString().slice(0, 16)
-        : '',
-      end_time: (() => {
-        const stored = extractEndTime(event.description);
-        return stored
-          ? new Date(stored).toISOString().slice(11, 16)
-          : '';
-      })(),
-      capacity: '',
+      date_time: toLocalDateTimeInputValue(event.date_time),
+      end_time: toLocalTimeInputValue(extractEndTime(event.description)),
     });
 
     try {
-      setEditLoadingCapacity(true);
       const types = await api.getTicketTypesByEvent(event.id);
       setTicketTypes(types || []);
       if (types && types.length > 0) {
-        setEditTicketTypeId(types[0].id);
-        setEditForm((prev) => ({
-          ...prev,
-          capacity: types[0].capacity,
-        }));
+        const caps = {};
+        const prices = {};
+        types.forEach((ty) => { 
+          caps[ty.id] = ty.capacity; 
+          prices[ty.id] = ty.price; 
+        });
+        setTicketCapacities(caps);
+        setTicketPrices(prices);
+      } else {
+        setTicketCapacities({});
+        setTicketPrices({});
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setEditLoadingCapacity(false);
     }
   };
 
   const buildEndDateTime = (form) => {
     if (!form.end_time || !form.date_time) return undefined;
-    const datePart = form.date_time.split('T')[0];
-    return `${datePart}T${form.end_time}`;
+
+    const start = new Date(form.date_time);
+    const [endHours, endMinutes] = form.end_time.split(':').map(Number);
+
+    const end = new Date(start);
+    end.setHours(endHours, endMinutes, 0, 0);
+
+    if (end <= start) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const datePart = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+    const timePart = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    return `${datePart}T${timePart}`;
   };
 
   const handleUpdate = async (e) => {
@@ -135,26 +142,43 @@ export default function MyEvents() {
     setEditError('');
 
     const endDateTime = buildEndDateTime(editForm);
-    if (endDateTime && new Date(endDateTime) <= new Date(editForm.date_time)) {
-      setEditError(t.endTimeError);
-      return;
-    }
 
     try {
-      const { capacity, end_time, ...eventFields } = editForm;
+      const { end_time, ...eventFields } = editForm;
       await api.updateEvent(editingEvent.id, {
         ...eventFields,
         description: encodeEndTime(editForm.description, endDateTime),
       });
 
-      if (editTicketTypeId && capacity !== '') {
-        await api.updateTicketType(editTicketTypeId, { capacity: Number(capacity) });
+      // تحديث السعة والسعر للتذاكر الحالية بشكل مباشر وآمن لتجنب كسر القيود
+      await Promise.all(
+        ticketTypes.map((ty) =>
+          api.updateTicketType(ty.id, {
+            capacity: Number(ticketCapacities[ty.id] ?? ty.capacity),
+            price: Number(ticketPrices[ty.id] ?? ty.price),
+          })
+        )
+      );
+
+      if (newTicketTypes.length > 0) {
+        await Promise.all(
+          newTicketTypes.map((nt) =>
+            api.createTicketType({
+              event_id: editingEvent.id,
+              ticket_name: nt.ticket_name,
+              price: Number(nt.price || 0),
+              capacity: Number(nt.capacity || 0),
+              available_tickets: Number(nt.capacity || 0),
+            })
+          )
+        );
       }
 
       setEditingEvent(null);
       loadEvents();
     } catch (err) {
       console.error('Failed to update event', err);
+      setEditError(err.response?.data?.message || 'Failed to update ticket types. Please check your values.');
     }
   };
 
@@ -168,6 +192,41 @@ export default function MyEvents() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleDeleteTicketType = async (id) => {
+    try {
+      await api.deleteTicketType(id);
+      setTicketTypes((prev) => prev.filter((t) => t.id !== id));
+      setTicketCapacities((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      setTicketPrices((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddTicketField = () => {
+    setNewTicketTypes((prev) => [...prev, { ticket_name: 'VIP Pass', price: 45, capacity: 50 }]);
+  };
+
+  const handleNewTicketChange = (index, field, value) => {
+    setNewTicketTypes((prev) => {
+      const updated = [...prev];
+      updated[index][field] = value;
+      return updated;
+    });
+  };
+
+  const handleRemoveNewTicketField = (index) => {
+    setNewTicketTypes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleQuickStatusChange = async (event, newStatus) => {
@@ -210,7 +269,6 @@ export default function MyEvents() {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="max-w-6xl mx-auto px-4 py-8 overflow-hidden font-sans">
-      {/* Header Section */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <motion.h1
@@ -244,7 +302,6 @@ export default function MyEvents() {
         </motion.button>
       </div>
 
-      {/* Refined Filter Tabs Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -423,7 +480,7 @@ export default function MyEvents() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.dateTime}</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">Date & Time</label>
                   <input
                     type="datetime-local"
                     required
@@ -433,7 +490,7 @@ export default function MyEvents() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.endTime}</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">End Time</label>
                   <input
                     type="time"
                     value={editForm.end_time || ''}
@@ -452,44 +509,142 @@ export default function MyEvents() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">
-                    Ticket Type
+                <div className="space-y-4">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block">
+                    Ticket Types
                   </label>
-                  <select
-                    value={editTicketTypeId || ""}
-                    onChange={(e) => {
-                      const id = Number(e.target.value);
-                      setEditTicketTypeId(id);
-                      const type = ticketTypes.find((t) => t.id === id);
-                      if (type) {
-                        setEditForm((prev) => ({
-                          ...prev,
-                          capacity: type.capacity,
-                        }));
-                      }
-                    }}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white"
+                  
+                  {ticketTypes.map((type) => (
+                    <div
+                      key={type.id}
+                      className="bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white px-2.5 py-1 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                          {type.ticket_name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTicketType(type.id)}
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded-lg transition cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 dark:text-purple-300 block mb-1">
+                            Capacity
+                          </label>
+                          <input
+                            type="number"
+                            value={ticketCapacities[type.id] ?? ''}
+                            onChange={(e) =>
+                              setTicketCapacities((prev) => ({
+                                ...prev,
+                                [type.id]:
+                                  e.target.value === ''
+                                    ? ''
+                                    : Number(e.target.value),
+                              }))
+                            }
+                            className="w-full bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/60 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 dark:text-purple-300 block mb-1">
+                            Price
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={ticketPrices[type.id] ?? ''}
+                            onChange={(e) =>
+                              setTicketPrices((prev) => ({
+                                ...prev,
+                                [type.id]:
+                                  e.target.value === ''
+                                    ? ''
+                                    : Number(e.target.value),
+                              }))
+                            }
+                            className="w-full bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/60 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* التذاكر الجديدة مع اسم التذكرة، والسعة، والسعر */}
+                  {newTicketTypes.map((nt, index) => (
+                    <div
+                      key={index}
+                      className="bg-purple-50/50 dark:bg-purple-950/20 border border-purple-300 dark:border-purple-500/40 rounded-2xl p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-purple-600 dark:text-purple-300">
+                          New Ticket Type
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNewTicketField(index)}
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded-lg transition cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-xs text-slate-600 dark:text-purple-300 block mb-1">Ticket Name List</label>
+                          <select
+                            value={nt.ticket_name}
+                            onChange={(e) => handleNewTicketChange(index, 'ticket_name', e.target.value)}
+                            className="w-full bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/60 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+                          >
+                            {PREDEFINED_TICKET_NAMES.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-slate-600 dark:text-purple-300 block mb-1">Capacity</label>
+                            <input
+                              type="number"
+                              required
+                              value={nt.capacity}
+                              onChange={(e) => handleNewTicketChange(index, 'capacity', e.target.value)}
+                              className="w-full bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/60 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-600 dark:text-purple-300 block mb-1">Price</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              required
+                              value={nt.price}
+                              onChange={(e) => handleNewTicketChange(index, 'price', e.target.value)}
+                              className="w-full bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/60 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={handleAddTicketField}
+                    className="w-full border-2 border-dashed border-purple-400 dark:border-purple-500/50 rounded-2xl py-3 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition cursor-pointer font-medium text-xs flex items-center justify-center gap-2"
                   >
-                    {ticketTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.ticket_name}
-                      </option>
-                    ))}
-                  </select>
+                    <Plus className="w-4 h-4" />
+                    Add Ticket Type
+                  </button>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block mb-1">{t.capacity}</label>
-                  <input
-                    type="number"
-                    disabled={editLoadingCapacity}
-                    value={editForm.capacity}
-                    onChange={(e) => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-2xl p-3 text-xs md:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition disabled:opacity-50"
-                  />
-                  <p className="text-[10px] text-slate-400 dark:text-purple-300/40 mt-1">{t.capacityHint}</p>
-                </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"

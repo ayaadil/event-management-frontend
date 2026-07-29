@@ -168,7 +168,7 @@ export default function Sidebar() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="hidden md:flex w-64 flex-col justify-between p-5 bg-white dark:bg-[#130B38] border-r border-slate-200 dark:border-white/10 min-h-screen text-slate-800 dark:text-white shrink-0 transition-colors duration-200 shadow-sm"
+     className="hidden md:flex w-64 flex-col justify-between p-5 bg-white dark:bg-[#130B38] border-r border-slate-200 dark:border-white/10 h-screen overflow-y-auto text-slate-800 dark:text-white shrink-0 transition-colors duration-200 shadow-sm"
     >
       <div className="space-y-6">
         <motion.div

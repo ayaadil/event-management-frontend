@@ -76,6 +76,9 @@ export default function ExploreEventsPage() {
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState(new Set());
   const [showSearch, setShowSearch] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -94,6 +97,8 @@ export default function ExploreEventsPage() {
       filterAll: 'الكل',
       filterUpcoming: 'القادمة',
       filterPast: 'السابقة',
+      loadMore: 'تحميل المزيد',
+      loadingMore: 'جارٍ التحميل...',
     },
     ku: {
       title: 'گەڕان بەدوای چالاکییەکاندا',
@@ -109,6 +114,8 @@ export default function ExploreEventsPage() {
       filterAll: 'هەموو',
       filterUpcoming: 'داتوو',
       filterPast: 'ڕابردوو',
+      loadMore: 'زیاتر باربکە',
+      loadingMore: 'باردەکرێت...',
     },
     en: {
       title: 'Explore Events',
@@ -124,6 +131,8 @@ export default function ExploreEventsPage() {
       filterAll: 'All',
       filterUpcoming: 'Upcoming',
       filterPast: 'Past',
+      loadMore: 'Load More',
+      loadingMore: 'Loading...',
     }
   };
   const t = uiTexts[currentLang] || uiTexts.en;
@@ -137,14 +146,30 @@ export default function ExploreEventsPage() {
 
   useEffect(() => {
     setLoading(true);
-    api.getEvents()
+    api.getEvents({ limit: 20, page: 1 })
       .then((data) => {
         const fetched = data.events || data.rows || data || [];
         setAllEvents(Array.isArray(fetched) ? fetched : []);
+        setPage(data.page || 1);
+        setTotalPages(data.pages || 1);
       })
       .catch(() => setAllEvents([]))
       .finally(() => setLoading(false));
   }, []);
+
+  const loadMoreEvents = () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    api.getEvents({ limit: 20, page: nextPage })
+      .then((data) => {
+        const fetched = data.events || data.rows || data || [];
+        setAllEvents((prev) => [...prev, ...(Array.isArray(fetched) ? fetched : [])]);
+        setPage(data.page || nextPage);
+        setTotalPages(data.pages || totalPages);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  };
 
   useEffect(() => {
     if (categoryFromUrl) {
@@ -411,90 +436,106 @@ export default function ExploreEventsPage() {
           {loading ? (
             <div className="text-center py-24 text-slate-500 dark:text-slate-400 text-sm font-medium animate-pulse">{t.loading}</div>
           ) : filteredEvents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((evt) => {
-                const isSaved = savedIds.has(evt.id);
-                const evtTitle = evt.title;
-                const evtLocation = evt.location;
-                const evtCategoryName = localize(
-                  {
-                    name: evt.category_name,
-                    name_ar: evt.category_name_ar,
-                    name_ku: evt.category_name_ku,
-                    name_en: evt.category_name_en,
-                  },
-                  'name'
-                );
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEvents.map((evt) => {
+                  const isSaved = savedIds.has(evt.id);
+                  const evtTitle = evt.title;
+                  const evtLocation = evt.location;
+                  const evtCategoryName = localize(
+                    {
+                      name: evt.category_name,
+                      name_ar: evt.category_name_ar,
+                      name_ku: evt.category_name_ku,
+                      name_en: evt.category_name_en,
+                    },
+                    'name'
+                  );
 
-                return (
-                  <motion.div
-                    whileHover={{ y: -6, scale: 1.01 }}
-                    transition={{ duration: 0.3 }}
-                    key={evt.id}
-                    onClick={() => navigate(`/events/${evt.id}`)}
-                    className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-[#2a1745] rounded-3xl overflow-hidden transition-all duration-300 shadow-sm cursor-pointer flex flex-col justify-between group"
-                  >
-                    <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-900">
-                      <img
-                        src={evt.image_url || evt.imageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80'}
-                        alt={evtTitle}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#13091f] via-transparent to-black/20" />
-                      
-                      {evtCategoryName && (
-                        <span className={`absolute top-3 ${isRtl ? 'right-3' : 'left-3'} px-3 py-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-bold text-purple-200`}>
-                          {evtCategoryName}
-                        </span>
-                      )}
+                  return (
+                    <motion.div
+                      whileHover={{ y: -6, scale: 1.01 }}
+                      transition={{ duration: 0.3 }}
+                      key={evt.id}
+                      onClick={() => navigate(`/events/${evt.id}`)}
+                      className="bg-white dark:bg-[#13091f] border border-slate-200/80 dark:border-[#2a1745] rounded-3xl overflow-hidden transition-all duration-300 shadow-sm cursor-pointer flex flex-col justify-between group"
+                    >
+                      <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-900">
+                        <img
+                          src={evt.image_url || evt.imageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80'}
+                          alt={evtTitle}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#13091f] via-transparent to-black/20" />
+                        
+                        {evtCategoryName && (
+                          <span className={`absolute top-3 ${isRtl ? 'right-3' : 'left-3'} px-3 py-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-bold text-purple-200`}>
+                            {evtCategoryName}
+                          </span>
+                        )}
 
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => toggleSave(e, evt.id)}
-                        className={`absolute top-3 ${isRtl ? 'left-3' : 'right-3'} p-2 rounded-xl backdrop-blur-md border transition duration-300 cursor-pointer shadow-md ${
-                          isSaved
-                            ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
-                            : 'bg-black/40 border-white/10 text-white hover:text-rose-400 hover:border-rose-500/30'
-                        }`}
-                      >
-                        <Heart className={`w-4 h-4 transition-transform duration-300 ${isSaved ? 'fill-rose-500 scale-110' : ''}`} />
-                      </motion.button>
-                    </div>
-
-                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-purple-300/60">
-                          <Calendar className="w-3.5 h-3.5 text-purple-400" />
-                          <span>{formatDate(evt.date_time || evt.dateTime || evt.date)}</span>
-                        </div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-purple-400 transition line-clamp-1">
-                          {evtTitle}
-                        </h3>
-                        <div className="space-y-1 text-xs text-slate-500 dark:text-purple-300/70">
-                          <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-purple-400 shrink-0" /><span className="line-clamp-1">{evtLocation || '—'}</span></p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-purple-900/20">
-                        <div>
-                          <span className="text-[10px] text-slate-400 dark:text-purple-300/50 block">{t.category}</span>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{evtCategoryName || '—'}</span>
-                        </div>
-                        <motion.button 
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/events/${evt.id}`); }} 
-                          className="px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-600 text-purple-600 dark:text-purple-200 hover:text-white rounded-xl text-xs font-semibold border border-purple-200 dark:border-purple-800/40 transition-all duration-300 cursor-pointer flex items-center gap-1.5"
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => toggleSave(e, evt.id)}
+                          className={`absolute top-3 ${isRtl ? 'left-3' : 'right-3'} p-2 rounded-xl backdrop-blur-md border transition duration-300 cursor-pointer shadow-md ${
+                            isSaved
+                              ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
+                              : 'bg-black/40 border-white/10 text-white hover:text-rose-400 hover:border-rose-500/30'
+                          }`}
                         >
-                          {t.getTicket}
+                          <Heart className={`w-4 h-4 transition-transform duration-300 ${isSaved ? 'fill-rose-500 scale-110' : ''}`} />
                         </motion.button>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-purple-300/60">
+                            <Calendar className="w-3.5 h-3.5 text-purple-400" />
+                            <span>{formatDate(evt.date_time || evt.dateTime || evt.date)}</span>
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-purple-400 transition line-clamp-1">
+                            {evtTitle}
+                          </h3>
+                          <div className="space-y-1 text-xs text-slate-500 dark:text-purple-300/70">
+                            <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-purple-400 shrink-0" /><span className="line-clamp-1">{evtLocation || '—'}</span></p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-purple-900/20">
+                          <div>
+                            <span className="text-[10px] text-slate-400 dark:text-purple-300/50 block">{t.category}</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{evtCategoryName || '—'}</span>
+                          </div>
+                          <motion.button 
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/events/${evt.id}`); }} 
+                            className="px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-600 text-purple-600 dark:text-purple-200 hover:text-white rounded-xl text-xs font-semibold border border-purple-200 dark:border-purple-800/40 transition-all duration-300 cursor-pointer flex items-center gap-1.5"
+                          >
+                            {t.getTicket}
+                          </motion.button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {page < totalPages && (
+                <div className="flex justify-center mt-8">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={loadMoreEvents}
+                    disabled={loadingMore}
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-60 text-white text-sm font-semibold rounded-2xl transition shadow-lg shadow-purple-900/20 cursor-pointer"
+                  >
+                    {loadingMore ? t.loadingMore : t.loadMore}
+                  </motion.button>
+                </div>
+              )}
+            </>
           ) : (
             <motion.div 
               initial={{ opacity: 0 }}

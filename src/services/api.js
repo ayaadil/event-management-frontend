@@ -1,21 +1,4 @@
 // src/services/api.js
-uploadImage: async (file) => {
-  const token = localStorage.getItem('token');
-  const formData = new FormData();
-  formData.append('image', file);
-
-  const response = await fetch(`${BASE_URL}/uploads`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData, // ملاحظة: لا تضع Content-Type يدوياً، المتصفح يحددها تلقائياً مع boundary
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || 'Image upload failed');
-  }
-  return data; // { url: 'http://.../uploads/xxxx.jpg' }
-}
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const getToken = () => localStorage.getItem('token');
@@ -120,6 +103,25 @@ export const api = {
   createSpeaker: (fields) => request('/speakers', { method: 'POST', body: fields }),
   linkSpeakerToEvent: ({ event_id, speaker_id }) =>
     request('/speakers/link', { method: 'POST', body: { event_id, speaker_id } }),
+
+  // ---- Uploads ----
+  uploadImage: async (file) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${BASE_URL}/uploads`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData, // لا تضع Content-Type يدوياً، المتصفح يحددها تلقائياً مع boundary
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || 'Image upload failed');
+    }
+    return data; // { url: 'http://.../uploads/xxxx.jpg' }
+  },
 };
 
 export default api;

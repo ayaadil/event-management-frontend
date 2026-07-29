@@ -15,13 +15,13 @@ const t = {
     eventName: 'اسم الفعالية', eventNamePlaceholder: 'أدخل اسم الفعالية..',
     ticketPrice: 'سعر التذكرة', pricePlaceholder: 'أدخل السعر (0 = مجاني)',
     ticketTypesTitle: 'أنواع التذاكر',
-    ticketTypeName: 'اسم نوع التذكرة', ticketTypeNamePlaceholder: 'مثال: VIP، عام...',
+    ticketTypeName: 'اسم نوع التذكرة', ticketTypeNamePlaceholder: 'مثال: VIP Pass...',
     addTicketType: '+ إضافة نوع تذكرة', removeTicketType: 'حذف',
     ticketTypesError: 'يجب إضافة اسم وسعر وسعة صحيحة لكل نوع تذكرة',
     category: 'الفئة', selectCategory: 'اختر الفئة',
     capacity: 'السعة', capacityPlaceholder: 'أدخل السعة (عدد الحضور)',
     date: 'تاريخ ووقت البداية', organizer: 'اسم المنظم',
-    endTime: 'وقت الانتهاء', endTimeHint: 'اختر ساعة انتهاء الفعالية (نفس اليوم)',
+    endTime: 'وقت الانتهاء', endTimeHint: 'اختر ساعة الانتهاء (لو أصغر من وقت البداية، يُحسب تلقائياً لليوم التالي)',
     endTimeError: 'وقت الانتهاء يجب أن يكون بعد وقت البداية',
     location: 'الموقع', locationPlaceholder: 'أدخل موقع الفعالية',
     description: 'الوصف', descPlaceholder: 'اكتب وصفاً قصيراً...',
@@ -35,13 +35,13 @@ const t = {
     eventName: 'ناوی چالاکی', eventNamePlaceholder: 'ناوی چالاکی بنووسه..',
     ticketPrice: 'نرخی بلیت', pricePlaceholder: 'نرخ بنووسە (٠ = خۆڕایی)',
     ticketTypesTitle: 'جۆرەکانی بلیت',
-    ticketTypeName: 'ناوی جۆری بلیت', ticketTypeNamePlaceholder: 'نموونە: VIP، گشتی...',
+    ticketTypeName: 'ناوی جۆری بلیت', ticketTypeNamePlaceholder: 'نموونە: VIP Pass...',
     addTicketType: '+ زیادکردنی جۆری بلیت', removeTicketType: 'سڕینەوە',
     ticketTypesError: 'پێویستە ناو، نرخ و توانای دروست بۆ هەر جۆرێکی بلیت زیاد بکەیت',
     category: 'پۆل', selectCategory: 'پۆل هەڵبژێرە',
     capacity: 'توانای وەرگرتن', capacityPlaceholder: 'توانای شوێنەکە بنووسە',
     date: 'بەروار و کاتی دەستپێک', organizer: 'ناوی ڕێکخەر',
-    endTime: 'کاتی کۆتایی', endTimeHint: 'کاتی کۆتایی چالاکییەکە هەڵبژێرە (هەمان ڕۆژ)',
+    endTime: 'کاتی کۆتایی', endTimeHint: 'کاتی کۆتایی هەڵبژێرە (ئەگەر لە کاتی دەستپێک کەمتر بوو، بە خۆکار بۆ ڕۆژی دواتر دادەنرێت)',
     endTimeError: 'کاتی کۆتایی دەبێت دوای کاتی دەستپێک بێت',
     location: 'شوێن', locationPlaceholder: 'شوێن بنووسە',
     description: 'پێناسە', descPlaceholder: 'پێناسەیەکی کورت بنووسە...',
@@ -55,13 +55,13 @@ const t = {
     eventName: 'Event name', eventNamePlaceholder: 'Enter Event name..',
     ticketPrice: 'Ticket price', pricePlaceholder: 'Enter price (0 = Free)',
     ticketTypesTitle: 'Ticket Types',
-    ticketTypeName: 'Ticket type name', ticketTypeNamePlaceholder: 'e.g. VIP, General...',
+    ticketTypeName: 'Ticket Name List', ticketTypeNamePlaceholder: 'e.g. VIP Pass...',
     addTicketType: '+ Add Ticket Type', removeTicketType: 'Remove',
     ticketTypesError: 'Every ticket type needs a name, a valid price, and a valid capacity',
     category: 'Category', selectCategory: 'Select category',
     capacity: 'Capacity', capacityPlaceholder: 'Enter Capacity',
     date: 'Start Date & Time', organizer: 'Organizer Name',
-    endTime: 'End Time', endTimeHint: "Pick the event's end time (same day)",
+    endTime: 'End Time', endTimeHint: "Pick the end time (if earlier than the start time, it's assumed to be the next day)",
     endTimeError: 'End time must be after the start time',
     location: 'Location', locationPlaceholder: 'Enter location',
     description: 'Description', descPlaceholder: 'Write a short description...',
@@ -94,19 +94,18 @@ export default function CreateEvent() {
     title: '',
     category_id: '',
     date_time: '',
-    end_time: '', // ساعة الانتهاء فقط (HH:mm) بنفس يوم date_time
+    end_time: '', 
     location: '',
     description: '',
     image_url: '',
   });
 
-  // كل فعالية ممكن تكون عندها أكثر من نوع تذكرة (مثلاً VIP + General)
   const [ticketTypes, setTicketTypes] = useState([
-    { ticket_name: 'General Admission', price: '', capacity: '' },
+    { ticket_name: 'VIP Pass', price: '', capacity: '' },
   ]);
 
   const addTicketTypeRow = () => {
-    setTicketTypes((prev) => [...prev, { ticket_name: '', price: '', capacity: '' }]);
+    setTicketTypes((prev) => [...prev, { ticket_name: 'VIP Pass', price: '', capacity: '' }]);
   };
 
   const removeTicketTypeRow = (index) => {
@@ -136,11 +135,23 @@ export default function CreateEvent() {
     reader.readAsDataURL(file);
   };
 
-  // يبني وقت انتهاء كامل (تاريخ + ساعة) من تاريخ البداية + ساعة النهاية المختارة
   const buildEndDateTime = () => {
     if (!formData.end_time || !formData.date_time) return undefined;
-    const datePart = formData.date_time.split('T')[0];
-    return `${datePart}T${formData.end_time}`;
+
+    const start = new Date(formData.date_time);
+    const [endHours, endMinutes] = formData.end_time.split(':').map(Number);
+
+    const end = new Date(start);
+    end.setHours(endHours, endMinutes, 0, 0);
+
+    if (end <= start) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const datePart = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+    const timePart = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    return `${datePart}T${timePart}`;
   };
 
   const handleSubmit = async (e) => {
@@ -148,10 +159,6 @@ export default function CreateEvent() {
     setError('');
 
     const endDateTime = buildEndDateTime();
-    if (endDateTime && new Date(endDateTime) <= new Date(formData.date_time)) {
-      setError(text.endTimeError);
-      return;
-    }
 
     const validTicketTypes = ticketTypes.filter(
       (tt) => tt.ticket_name.trim() && tt.price !== '' && tt.capacity !== '' && Number(tt.capacity) > 0
@@ -165,7 +172,6 @@ export default function CreateEvent() {
     try {
       const event = await api.createEvent({
         title: formData.title,
-        // نخزّن وقت الانتهاء داخل description لأن جدول events لا يحتوي عمود end_time
         description: encodeEndTime(formData.description, endDateTime),
         image_url: formData.image_url || undefined,
         date_time: formData.date_time,
@@ -174,7 +180,6 @@ export default function CreateEvent() {
         status: 'published',
       });
 
-      // إنشاء كل أنواع التذاكر (VIP، General... إلخ) لنفس الفعالية
       for (const tt of validTicketTypes) {
         await api.createTicketType({
           event_id: event.id,
@@ -314,7 +319,7 @@ export default function CreateEvent() {
             </div>
           </div>
 
-          {/* End Time (ساعة انتهاء الفعالية بنفس اليوم) */}
+          {/* End Time */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-purple-700 dark:text-purple-200">{text.endTime}</label>
             <div className="relative">
@@ -329,7 +334,7 @@ export default function CreateEvent() {
             <p className="text-[10px] text-slate-400 dark:text-purple-300/40">{text.endTimeHint}</p>
           </div>
 
-          {/* Organizer Name (read-only, from logged-in account) */}
+          {/* Organizer Name */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-purple-700 dark:text-purple-200">{text.organizer}</label>
             <div className="relative">
@@ -342,65 +347,90 @@ export default function CreateEvent() {
           </div>
         </div>
 
-        {/* Ticket Types (يمكن إضافة أكثر من نوع تذكرة: VIP, General...) */}
-        <div className="space-y-3">
+        {/* Ticket Types (List Layout with Specific Ticket Options) */}
+        <div className="space-y-4">
           <label className="text-xs font-semibold text-purple-700 dark:text-purple-200">{text.ticketTypesTitle}</label>
+          
           <div className="space-y-3">
             {ticketTypes.map((row, index) => (
-              <div
+              <motion.div
                 key={index}
-                className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_auto] gap-3 items-end"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-white dark:bg-[#150a21] border border-slate-200 dark:border-purple-900/40 rounded-2xl p-4 space-y-4 shadow-sm relative"
               >
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-slate-500 dark:text-purple-300/60">{text.ticketTypeName}</label>
-                  <input
-                    type="text" placeholder={text.ticketTypeNamePlaceholder}
-                    value={row.ticket_name}
-                    onChange={(e) => updateTicketTypeRow(index, 'ticket_name', e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 px-3 text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/40 focus:outline-none focus:border-purple-500 transition"
-                  />
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-purple-900/20 pb-2">
+                  <span className="text-[11px] font-bold text-purple-600 dark:text-purple-300">
+                    #{index + 1}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={ticketTypes.length === 1}
+                    onClick={() => removeTicketTypeRow(index)}
+                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    {text.removeTicketType}
+                  </button>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-slate-500 dark:text-purple-300/60">{text.ticketPrice}</label>
-                  <div className="relative">
-                    <DollarSign className={`absolute top-2.5 ${isRtl ? 'right-2.5' : 'left-2.5'} w-3.5 h-3.5 text-purple-500 dark:text-purple-400`} />
-                    <input
-                      type="number" min="0" step="0.01" placeholder={text.pricePlaceholder}
-                      value={row.price}
-                      onChange={(e) => updateTicketTypeRow(index, 'price', e.target.value)}
-                      className={`w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 ${isRtl ? 'pr-8 pl-3' : 'pl-8 pr-3'} text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/40 focus:outline-none focus:border-purple-500 transition`}
-                    />
+
+                <div className="space-y-3">
+                  {/* Ticket Type Name List Dropdown */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-500 dark:text-purple-300/60">{text.ticketTypeName}</label>
+                    <select
+                      value={row.ticket_name}
+                      onChange={(e) => updateTicketTypeRow(index, 'ticket_name', e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+                    >
+                      <option value="VIP Pass">VIP Pass</option>
+                      <option value="Concert Ticket">Concert Ticket</option>
+                      <option value="General Admission">General Admission</option>
+                      <option value="Standard">Standard</option>
+                      <option value="Early Bird">Early Bird</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Price */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-500 dark:text-purple-300/60">{text.ticketPrice}</label>
+                      <div className="relative">
+                        <DollarSign className={`absolute top-2.5 ${isRtl ? 'right-2.5' : 'left-2.5'} w-3.5 h-3.5 text-purple-500 dark:text-purple-400`} />
+                        <input
+                          type="number" min="0" step="0.01" placeholder={text.pricePlaceholder}
+                          value={row.price}
+                          onChange={(e) => updateTicketTypeRow(index, 'price', e.target.value)}
+                          className={`w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 ${isRtl ? 'pr-8 pl-3' : 'pl-8 pr-3'} text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/40 focus:outline-none focus:border-purple-500 transition`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Capacity */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-500 dark:text-purple-300/60">{text.capacity}</label>
+                      <div className="relative">
+                        <Users className={`absolute top-2.5 ${isRtl ? 'right-2.5' : 'left-2.5'} w-3.5 h-3.5 text-purple-500 dark:text-purple-400`} />
+                        <input
+                          type="number" min="1" placeholder={text.capacityPlaceholder}
+                          value={row.capacity}
+                          onChange={(e) => updateTicketTypeRow(index, 'capacity', e.target.value)}
+                          className={`w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 ${isRtl ? 'pr-8 pl-3' : 'pl-8 pr-3'} text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/40 focus:outline-none focus:border-purple-500 transition`}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-slate-500 dark:text-purple-300/60">{text.capacity}</label>
-                  <div className="relative">
-                    <Users className={`absolute top-2.5 ${isRtl ? 'right-2.5' : 'left-2.5'} w-3.5 h-3.5 text-purple-500 dark:text-purple-400`} />
-                    <input
-                      type="number" min="1" placeholder={text.capacityPlaceholder}
-                      value={row.capacity}
-                      onChange={(e) => updateTicketTypeRow(index, 'capacity', e.target.value)}
-                      className={`w-full bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 ${isRtl ? 'pr-8 pl-3' : 'pl-8 pr-3'} text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-purple-300/40 focus:outline-none focus:border-purple-500 transition`}
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  disabled={ticketTypes.length === 1}
-                  onClick={() => removeTicketTypeRow(index)}
-                  className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-2.5 rounded-xl border border-rose-200 dark:border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer whitespace-nowrap"
-                >
-                  {text.removeTicketType}
-                </button>
-              </div>
+              </motion.div>
             ))}
           </div>
+
           <motion.button
             type="button"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={addTicketTypeRow}
-            className="text-xs font-semibold text-purple-600 dark:text-purple-300 hover:underline cursor-pointer"
+            className="w-full py-3 border border-dashed border-purple-300 dark:border-purple-900/60 rounded-2xl text-xs font-semibold text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 transition cursor-pointer flex items-center justify-center gap-2"
           >
             {text.addTicketType}
           </motion.button>

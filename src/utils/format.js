@@ -67,6 +67,7 @@ export function encodeEndTime(description, endDateTime) {
   if (!endDateTime) return clean || undefined;
   return `${clean}\n[END_TIME:${endDateTime}]`;
 }
+
 export function formatDateBadge(dateTime) {
   if (!dateTime) {
     return {
@@ -95,4 +96,22 @@ export function formatDateBadge(dateTime) {
     }).toUpperCase(),
     year: d.getFullYear().toString(),
   };
+}
+
+// يحوّل Date إلى قيمة صالحة لـ <input type="datetime-local"> بالتوقيت المحلي (وليس UTC)
+export function toLocalDateTimeInputValue(dateTime) {
+  if (!dateTime) return '';
+  const d = new Date(dateTime);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// يحوّل Date إلى قيمة صالحة لـ <input type="time"> بالتوقيت المحلي (وليس UTC)
+export function toLocalTimeInputValue(dateTime) {
+  if (!dateTime) return '';
+  const d = new Date(dateTime);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

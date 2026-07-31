@@ -1,5 +1,5 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { api } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -19,7 +19,6 @@ export function AuthProvider({ children }) {
       .getMe()
       .then((userData) => setUser(userData))
       .catch(() => {
-        // token invalid/expired
         localStorage.removeItem('token');
         setUser(null);
       })
@@ -56,6 +55,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     setUser(null);
   };
+
+  useAutoRefresh(() => {
+    if (localStorage.getItem('token')) {
+      refreshUser().catch((err) => {
+        if (err?.response?.status === 401) {
+          logout();
+        }
+      });
+    }
+  }, 30000, !loading);
 
   const isAuthenticated = !!user;
   const isOrganizer = user?.role === 'organizer';

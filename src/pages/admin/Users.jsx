@@ -1,9 +1,10 @@
 // src/pages/admin/Users.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, ShieldCheck, Search, Loader2 } from 'lucide-react';
+import { Trash2, ShieldCheck, Search, Loader2, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { api } from '../../services/api';
 
 const ROLES = ['user', 'organizer_pending', 'organizer', 'admin'];
@@ -20,8 +21,10 @@ const t = {
     joinedDate: 'تاريخ الانضمام',
     actions: 'الإجراءات',
     deleteTitle: 'حذف المستخدم',
+    approve: 'موافقة',
+    reject: 'رفض',
     adminsOnly: 'للمشرفين فقط.',
-    roles: { user: 'مستخدم', organizer_pending: '⏳ طلب معلّق', organizer: 'منظّم', admin: 'مشرف' },
+    roles: { user: 'مستخدم', organizer_pending: '⏳ طلب معلّق', organizer: 'منظم', admin: 'مشرف' },
   },
   ku: {
     pageTitle: 'بەڕێوەبردنی بەکارهێنەران',
@@ -34,6 +37,8 @@ const t = {
     joinedDate: 'بەرواری چوونەژوورەوە',
     actions: 'کردارەکان',
     deleteTitle: 'سڕینەوەی بەکارهێنەر',
+    approve: 'پەسەندکردن',
+    reject: 'ڕەتکردنەوە',
     adminsOnly: 'تەنها بۆ بەڕێوەبەران.',
     roles: { user: 'بەکارهێنەر', organizer_pending: '⏳ داواکاری چاوەڕوان', organizer: 'ڕێکخەر', admin: 'بەڕێوەبەر' },
   },
@@ -48,6 +53,8 @@ const t = {
     joinedDate: 'Joined Date',
     actions: 'Actions',
     deleteTitle: 'Delete user',
+    approve: 'Approve',
+    reject: 'Reject',
     adminsOnly: 'Admins only.',
     roles: { user: 'user', organizer_pending: '⏳ Pending request', organizer: 'organizer', admin: 'admin' },
   },
@@ -71,11 +78,21 @@ export default function AdminUsers() {
   const [savingId, setSavingId] = useState(null);
 
   const load = useCallback(() => {
-    setLoading(true);
-    api.getUsers().then(setUsers).catch(() => setUsers([])).finally(() => setLoading(false));
+    return api.getUsers().then(setUsers).catch(() => setUsers([]));
   }, []);
 
-  useEffect(() => { if (isAdmin) load(); }, [isAdmin, load]);
+  // التحميل الأولي فقط (مع شاشة تحميل)
+  useEffect(() => {
+    if (!isAdmin) return;
+    setLoading(true);
+    api.getUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  }, [isAdmin]);
+
+  // تحديث تلقائي بالخلفية كل 30 ثانية (بدون شاشة تحميل)
+  useAutoRefresh(load, 30000, isAdmin);
 
   const handleRoleChange = async (id, role) => {
     setSavingId(id);
@@ -88,6 +105,9 @@ export default function AdminUsers() {
       setSavingId(null);
     }
   };
+
+  const handleApprove = (id) => handleRoleChange(id, 'organizer');
+  const handleReject = (id) => handleRoleChange(id, 'user');
 
   const handleDelete = async (id) => {
     try {
@@ -236,16 +256,42 @@ ${
                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                       </td>
                       <td className="p-4 text-center">
-                        <motion.button
-                          whileHover={{ scale: 1.2, rotate: 10 }}
-                          whileTap={{ scale: 0.85 }}
-                          onClick={() => handleDelete(u.id)}
-                          disabled={u.id === currentUser?.id}
-                          className="text-rose-500 hover:text-rose-600 disabled:opacity-25 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer transition-colors inline-flex items-center justify-center"
-                          title={text.deleteTitle}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </motion.button>
+                        <div className="flex items-center justify-center gap-2">
+                          {u.role === 'organizer_pending' && (
+                            <>
+                              <motion.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleApprove(u.id)}
+                                disabled={savingId === u.id}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-green-100 dark:bg-green-500/15 text-green-600 border border-green-300 dark:border-green-500/40 hover:bg-green-200 dark:hover:bg-green-500/25 disabled:opacity-25 cursor-pointer transition-colors shadow-sm"
+                                title={text.approve}
+                              >
+                                <Check className="w-4 h-4" />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleReject(u.id)}
+                                disabled={savingId === u.id}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-600 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-200 dark:hover:bg-amber-500/25 disabled:opacity-25 cursor-pointer transition-colors shadow-sm"
+                                title={text.reject}
+                              >
+                                <X className="w-4 h-4" />
+                              </motion.button>
+                            </>
+                          )}
+                          <motion.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleDelete(u.id)}
+                            disabled={u.id === currentUser?.id}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-500/15 text-rose-600 border border-rose-300 dark:border-rose-500/40 hover:bg-rose-200 dark:hover:bg-rose-500/25 disabled:opacity-25 cursor-pointer transition-colors shadow-sm"
+                            title={text.deleteTitle}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </motion.button>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}

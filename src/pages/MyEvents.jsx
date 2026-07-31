@@ -1,10 +1,11 @@
 // src/pages/MyEvents.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Edit3, Trash2, Plus, X, Save } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { api } from '../services/api';
 import { formatDate, encodeEndTime, extractEndTime, stripEndTimeMarker, toLocalDateTimeInputValue, toLocalTimeInputValue } from '../utils/format';
 
@@ -60,31 +61,41 @@ export default function MyEvents() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState('');
-  const [ticketCapacities, setTicketCapacities] = useState({}); 
-  const [ticketPrices, setTicketPrices] = useState({}); 
-  const [newTicketTypes, setNewTicketTypes] = useState([]); 
+  const [ticketCapacities, setTicketCapacities] = useState({});
+  const [ticketPrices, setTicketPrices] = useState({});
+  const [newTicketTypes, setNewTicketTypes] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
   const canAccess = isOrganizer || isAdmin;
 
-  const loadEvents = useCallback(async () => {
+  const editingEventRef = useRef(null); // يمنع الـ auto-refresh من التدخل وقت فتح مودال التعديل
+
+  const loadEvents = useCallback(async (isBackground = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!isBackground) setLoading(true);
     try {
       const data = await api.getEvents({ limit: 100 });
       setEvents((data.events || []).filter((e) => Number(e.organizer_id) === Number(user.id)));
     } catch (err) {
       console.error('Failed to load events', err);
-      setEvents([]);
+      if (!isBackground) setEvents([]);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => { if (canAccess) loadEvents(); }, [canAccess, loadEvents]);
 
+  // تحديث تلقائي كل 15 ثانية بدون ما يوقف الصفحة على "جاري التحميل"، ويتوقف وقت فتح مودال التعديل
+  useAutoRefresh(() => {
+    if (!editingEventRef.current) {
+      loadEvents(true);
+    }
+  }, 30000, canAccess);
+
   const openEdit = async (event) => {
+    editingEventRef.current = event;
     setEditingEvent(event);
     setEditError('');
     setNewTicketTypes([]);
@@ -103,9 +114,9 @@ export default function MyEvents() {
       if (types && types.length > 0) {
         const caps = {};
         const prices = {};
-        types.forEach((ty) => { 
-          caps[ty.id] = ty.capacity; 
-          prices[ty.id] = ty.price; 
+        types.forEach((ty) => {
+          caps[ty.id] = ty.capacity;
+          prices[ty.id] = ty.price;
         });
         setTicketCapacities(caps);
         setTicketPrices(prices);
@@ -116,6 +127,11 @@ export default function MyEvents() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const closeEdit = () => {
+    editingEventRef.current = null;
+    setEditingEvent(null);
   };
 
   const buildEndDateTime = (form) => {
@@ -174,7 +190,7 @@ export default function MyEvents() {
         );
       }
 
-      setEditingEvent(null);
+      closeEdit();
       loadEvents();
     } catch (err) {
       console.error('Failed to update event', err);
@@ -461,7 +477,7 @@ export default function MyEvents() {
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-purple-900/30 pb-4">
                 <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">{t.edit}</h3>
                 <button
-                  onClick={() => setEditingEvent(null)}
+                  onClick={closeEdit}
                   className="text-slate-400 dark:text-purple-300 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg cursor-pointer transition"
                 >
                   <X className="w-5 h-5" />
@@ -513,7 +529,7 @@ export default function MyEvents() {
                   <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block">
                     Ticket Types
                   </label>
-                  
+
                   {ticketTypes.map((type) => (
                     <div
                       key={type.id}
@@ -648,7 +664,7 @@ export default function MyEvents() {
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setEditingEvent(null)}
+                    onClick={closeEdit}
                     className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-purple-900/40 text-slate-600 dark:text-purple-300 hover:bg-slate-100 dark:hover:bg-purple-900/30 cursor-pointer transition"
                   >
                     {t.cancel}

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationsContext';
 import { api } from '../services/api';
 import { formatDate, formatDateBadge } from '../utils/format';
 
@@ -77,6 +78,7 @@ const getCategoryIconColor = (categoryName = '') => {
 export default function Home() {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -254,17 +256,19 @@ export default function Home() {
             >
               <SlidersHorizontal className="w-4 h-4" />
             </motion.button>
-
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/notifications')} 
-              className="p-2.5 rounded-2xl bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/40 text-slate-500 dark:text-purple-300 hover:text-slate-900 dark:hover:text-white relative transition cursor-pointer shadow-sm"
-            >
-              <Bell className="w-4 h-4" />
-              <span className={`absolute top-2 ${isRtl ? 'left-2' : 'right-2'} w-2 h-2 bg-rose-500 rounded-full`}></span>
-            </motion.button>
-
+            <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  onClick={() => navigate('/notifications')} 
+  className="p-2.5 rounded-2xl bg-white dark:bg-[#13091f] border border-slate-200 dark:border-purple-900/40 text-slate-500 dark:text-purple-300 hover:text-slate-900 dark:hover:text-white relative transition cursor-pointer shadow-sm"
+>
+  <Bell className="w-4 h-4" />
+  {unreadCount > 0 && (
+    <span className={`absolute -top-1 ${isRtl ? '-left-1' : '-right-1'} min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center`}>
+      {unreadCount > 9 ? '9+' : unreadCount}
+    </span>
+  )}
+</motion.button>
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

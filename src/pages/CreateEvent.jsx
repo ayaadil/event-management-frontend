@@ -86,6 +86,7 @@ export default function CreateEvent() {
 
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [categories, setCategories] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -127,12 +128,31 @@ export default function CreateEvent() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImagePreview(reader.result);
-      setFormData((prev) => ({ ...prev, image_url: reader.result }));
-    };
-    reader.readAsDataURL(file);
+
+    const isHeic = file.type === 'image/heic' || file.type === 'image/heif';
+
+    if (isHeic) {
+      // المتصفح ما يقدر يعرض HEIC مباشرة، فما نسوي معاينة محلية لها
+      // ونعرض المعاينة الحقيقية بعد ما السيرفر يحولها لـ JPEG وترجع
+      setImagePreview(null);
+    } else {
+      // معاينة فورية محلية لباقي الصيغ (ما ترسل للسيرفر)
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+
+    // رفع الصورة الفعلي عبر /api/uploads، والرابط الراجع هو اللي يترسل مع الفعالية
+    setUploadingImage(true);
+    setError('');
+    api
+      .uploadImage(file)
+      .then((res) => {
+        setFormData((prev) => ({ ...prev, image_url: res.url }));
+        setImagePreview(res.url); // يضمن ظهور معاينة صحيحة حتى للصور اللي تحولت بالسيرفر (HEIC)
+      })
+      .catch((err) => setError(err.message || 'Image upload failed'))
+      .finally(() => setUploadingImage(false));
   };
 
   const buildEndDateTime = () => {
@@ -157,6 +177,11 @@ export default function CreateEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (uploadingImage) {
+      setError('Please wait for the image to finish uploading');
+      return;
+    }
 
     const endDateTime = buildEndDateTime();
 
@@ -256,15 +281,27 @@ export default function CreateEvent() {
           onClick={() => fileInputRef.current.click()}
           className="border-2 border-dashed border-slate-300 dark:border-purple-900/60 bg-slate-50/50 dark:bg-[#150a21]/50 rounded-3xl p-8 text-center hover:border-purple-400 dark:hover:border-purple-500/50 transition cursor-pointer flex flex-col items-center justify-center gap-3 relative overflow-hidden shadow-sm"
         >
-          <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*,.heic,.heif" className="hidden" />
           {imagePreview ? (
-            <motion.img 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              src={imagePreview} 
-              alt="Preview" 
-              className="w-full h-40 object-cover rounded-2xl" 
-            />
+            <div className="relative w-full">
+              <motion.img 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                src={imagePreview} 
+                alt="Preview" 
+                className="w-full h-40 object-cover rounded-2xl" 
+              />
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+          ) : uploadingImage ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <div className="w-8 h-8 border-4 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-slate-500 dark:text-purple-300/50">Processing image...</p>
+            </div>
           ) : (
             <>
               <div className="p-4 bg-purple-100 dark:bg-purple-600/10 border border-purple-300 dark:border-purple-500/20 rounded-2xl text-purple-600 dark:text-purple-400">

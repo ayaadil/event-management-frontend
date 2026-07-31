@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationsProvider } from './context/NotificationsContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -27,6 +28,7 @@ import NotificationsPage from './pages/Notifications';
 import MyEvents from './pages/MyEvents';
 import AdminUsers from './pages/admin/Users';
 import AdminCategories from './pages/admin/Categories';
+import AdminReports from './pages/admin/Reports';
 import ExploreEventsPage from './pages/Explore';
 
 export default function App() {
@@ -43,6 +45,7 @@ export default function App() {
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
+          <NotificationsProvider>
           <LanguageProvider>
             <Routes>
               {/* Public Auth Routes */}
@@ -73,6 +76,7 @@ export default function App() {
                   <Route element={<AdminRoute />}>
                     <Route path="/admin/users" element={<AdminUsers />} />
                     <Route path="/admin/categories" element={<AdminCategories />} />
+                    <Route path="/admin/reports" element={<AdminReports />} />
                   </Route>
                 </Route>
               </Route>
@@ -81,6 +85,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </LanguageProvider>
+          </NotificationsProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

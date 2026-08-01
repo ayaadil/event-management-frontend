@@ -153,7 +153,6 @@ export default function Sidebar() {
     loadPendingCount();
   }, [loadPendingCount, location.pathname]);
 
-  // تحديث تلقائي لعدد الطلبات المعلّقة كل 30 ثانية (بدل الاعتماد فقط على تغيّر الصفحة)
   useAutoRefresh(loadPendingCount, 120000, isAdmin);
 
   // ملاحظة: تحديث بيانات المستخدم (refreshUser) صار مسؤولية AuthContext فقط،

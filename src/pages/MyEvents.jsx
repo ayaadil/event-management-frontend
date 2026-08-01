@@ -67,6 +67,12 @@ export default function MyEvents() {
   const [deletingId, setDeletingId] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
+  const [allSpeakers, setAllSpeakers] = useState([]);
+  const [linkedSpeakerIds, setLinkedSpeakerIds] = useState([]);
+  const [selectedNewSpeakerIds, setSelectedNewSpeakerIds] = useState([]);
+  const [newSpeakerName, setNewSpeakerName] = useState('');
+  const [addingSpeaker, setAddingSpeaker] = useState(false);
+  const [unlinkingSpeakerId, setUnlinkingSpeakerId] = useState(null);
   const canAccess = isOrganizer || isAdmin;
 
   const editingEventRef = useRef(null); // يمنع الـ auto-refresh من التدخل وقت فتح مودال التعديل
@@ -127,6 +133,21 @@ export default function MyEvents() {
     } catch (err) {
       console.error(err);
     }
+
+    setSelectedNewSpeakerIds([]);
+    setNewSpeakerName('');
+    try {
+      const [speakersList, eventSpeakers] = await Promise.all([
+        api.getSpeakers(),
+        api.getSpeakersByEvent(event.id),
+      ]);
+      setAllSpeakers(speakersList || []);
+      setLinkedSpeakerIds((eventSpeakers || []).map((sp) => sp.id));
+    } catch (err) {
+      console.error(err);
+      setAllSpeakers([]);
+      setLinkedSpeakerIds([]);
+    }
   };
 
   const closeEdit = () => {
@@ -151,6 +172,41 @@ export default function MyEvents() {
     const datePart = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
     const timePart = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     return `${datePart}T${timePart}`;
+  };
+
+  const toggleNewSpeaker = (id) => {
+    setSelectedNewSpeakerIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleQuickAddSpeaker = async () => {
+    if (!newSpeakerName.trim()) return;
+    setAddingSpeaker(true);
+    try {
+      const res = await api.createSpeaker({ name: newSpeakerName.trim() });
+      const newId = res.id;
+      setAllSpeakers((prev) => [...prev, { id: newId, name: newSpeakerName.trim() }]);
+      setSelectedNewSpeakerIds((prev) => [...prev, newId]);
+      setNewSpeakerName('');
+    } catch (err) {
+      setEditError(err.message || 'Failed to add speaker');
+    } finally {
+      setAddingSpeaker(false);
+    }
+  };
+
+  const handleUnlinkSpeaker = async (speakerId) => {
+    if (!editingEvent) return;
+    setUnlinkingSpeakerId(speakerId);
+    try {
+      await api.unlinkSpeakerFromEvent({ event_id: editingEvent.id, speaker_id: speakerId });
+      setLinkedSpeakerIds((prev) => prev.filter((id) => id !== speakerId));
+    } catch (err) {
+      setEditError(err.message || 'Failed to remove speaker');
+    } finally {
+      setUnlinkingSpeakerId(null);
+    }
   };
 
   const handleUpdate = async (e) => {
@@ -186,6 +242,14 @@ export default function MyEvents() {
               capacity: Number(nt.capacity || 0),
               available_tickets: Number(nt.capacity || 0),
             })
+          )
+        );
+      }
+
+      if (selectedNewSpeakerIds.length > 0) {
+        await Promise.all(
+          selectedNewSpeakerIds.map((speakerId) =>
+            api.linkSpeakerToEvent({ event_id: editingEvent.id, speaker_id: speakerId })
           )
         );
       }
@@ -659,6 +723,91 @@ export default function MyEvents() {
                     <Plus className="w-4 h-4" />
                     Add Ticket Type
                   </button>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-purple-300 block">
+                    {isArabic ? 'المتحدثون / الفنانون' : isKurdish ? 'وتاربێژان' : 'Speakers / Artists'}
+                  </label>
+
+                  {linkedSpeakerIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <AnimatePresence>
+                        {allSpeakers
+                          .filter((sp) => linkedSpeakerIds.includes(sp.id))
+                          .map((sp) => (
+                            <motion.span
+                              key={sp.id}
+                              layout
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.15 } }}
+                              className="px-3 py-2 rounded-xl text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 flex items-center gap-1.5"
+                            >
+                              {sp.name}
+                              <button
+                                type="button"
+                                disabled={unlinkingSpeakerId === sp.id}
+                                onClick={() => handleUnlinkSpeaker(sp.id)}
+                                className="text-purple-500 hover:text-rose-500 disabled:opacity-40 cursor-pointer transition"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </motion.span>
+                          ))}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {allSpeakers.filter((sp) => !linkedSpeakerIds.includes(sp.id)).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <AnimatePresence>
+                        {allSpeakers
+                          .filter((sp) => !linkedSpeakerIds.includes(sp.id))
+                          .map((sp) => {
+                            const selected = selectedNewSpeakerIds.includes(sp.id);
+                            return (
+                              <motion.button
+                                key={sp.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.7 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                type="button"
+                                onClick={() => toggleNewSpeaker(sp.id)}
+                                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                                  selected
+                                    ? 'bg-purple-600 border-purple-600 text-white'
+                                    : 'bg-white dark:bg-[#0b0712] border-slate-200 dark:border-purple-900/40 text-slate-700 dark:text-purple-200'
+                                }`}
+                              >
+                                {sp.name}
+                              </motion.button>
+                            );
+                          })}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newSpeakerName}
+                      onChange={(e) => setNewSpeakerName(e.target.value)}
+                      placeholder={isArabic ? 'أضف متحدث جديد بالاسم...' : isKurdish ? 'وتاربێژێکی نوێ زیاد بکە...' : 'Add a new speaker by name...'}
+                      className="flex-1 bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/60 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                    />
+                    <button
+                      type="button"
+                      disabled={addingSpeaker || !newSpeakerName.trim()}
+                      onClick={handleQuickAddSpeaker}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 disabled:opacity-50 cursor-pointer transition"
+                    >
+                      {isArabic ? 'إضافة' : isKurdish ? 'زیادکردن' : 'Add'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">

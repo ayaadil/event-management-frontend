@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   XCircle,
   X as XIcon,
+  Mic2,
 } from 'lucide-react';
 import Logo from './logo';
 import { useAuth } from '../../context/AuthContext';
@@ -55,6 +56,7 @@ const sidebarTranslations = {
     adminUsers: 'Manage Users',
     adminCategories: 'Manage Categories',
     adminReports: 'Reports',
+    adminSpeakers: 'Manage Speakers',
     approvedTitle: 'Request approved!',
     approvedDesc: 'You are now an organizer and can create events.',
     rejectedTitle: 'Request rejected',
@@ -84,6 +86,7 @@ const sidebarTranslations = {
     adminUsers: 'إدارة المستخدمين',
     adminCategories: 'إدارة الفئات',
     adminReports: 'التقارير',
+    adminSpeakers: 'إدارة المتحدثين',
     approvedTitle: 'تمت الموافقة على طلبك!',
     approvedDesc: 'أصبحت الآن منظّم وتقدر تنشئ فعاليات.',
     rejectedTitle: 'تم رفض الطلب',
@@ -113,6 +116,7 @@ const sidebarTranslations = {
     adminUsers: 'بەڕێوەبردنی بەکارهێنەران',
     adminCategories: 'بەڕێوەبردنی پۆلەکان',
     adminReports: 'ڕاپۆرت',
+    adminSpeakers: 'بەڕێوەبردنی وتاربێژان',
     approvedTitle: 'داواکارییەکەت پەسەند کرا!',
     approvedDesc: 'ئێستا وەک ڕێکخەر دەتوانیت بۆنە دروست بکەیت.',
     rejectedTitle: 'داواکارییەکەت ڕەت کرایەوە',
@@ -209,6 +213,7 @@ export default function Sidebar() {
     { to: '/profile', label: t.profile, icon: User },
     // يظهر بس للمنظم أو الأدمن
     ...(isOrganizer || isAdmin ? [{ to: '/my-events', label: t.myEvents, icon: CalendarCog }] : []),
+    ...(isOrganizer || isAdmin ? [{ to: '/admin/speakers', label: t.adminSpeakers, icon: Mic2 }] : []),
   ];
 
   const adminItems = isAdmin

@@ -119,8 +119,36 @@ export default function CreateEvent() {
     );
   };
 
+  const [speakers, setSpeakers] = useState([]);
+  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState([]);
+  const [newSpeakerName, setNewSpeakerName] = useState('');
+  const [addingSpeaker, setAddingSpeaker] = useState(false);
+
+  const toggleSpeaker = (id) => {
+    setSelectedSpeakerIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleQuickAddSpeaker = async () => {
+    if (!newSpeakerName.trim()) return;
+    setAddingSpeaker(true);
+    try {
+      const res = await api.createSpeaker({ name: newSpeakerName.trim() });
+      const newId = res.id;
+      setSpeakers((prev) => [...prev, { id: newId, name: newSpeakerName.trim() }]);
+      setSelectedSpeakerIds((prev) => [...prev, newId]);
+      setNewSpeakerName('');
+    } catch (err) {
+      setError(err.message || 'Failed to add speaker');
+    } finally {
+      setAddingSpeaker(false);
+    }
+  };
+
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => setCategories([]));
+    api.getSpeakers().then(setSpeakers).catch(() => setSpeakers([]));
   }, []);
 
   const canCreate = isOrganizer || isAdmin;
@@ -212,6 +240,10 @@ export default function CreateEvent() {
           price: Number(tt.price) || 0,
           capacity: Number(tt.capacity),
         });
+      }
+
+      for (const speakerId of selectedSpeakerIds) {
+        await api.linkSpeakerToEvent({ event_id: event.id, speaker_id: speakerId });
       }
 
       navigate(`/events/${event.id}`);
@@ -471,6 +503,53 @@ export default function CreateEvent() {
           >
             {text.addTicketType}
           </motion.button>
+        </div>
+
+        {/* Speakers */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-purple-700 dark:text-purple-200">
+            {isRtl ? 'المتحدثون / الفنانون (اختياري)' : 'Speakers / Artists (optional)'}
+          </label>
+
+          {speakers.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {speakers.map((sp) => {
+                const selected = selectedSpeakerIds.includes(sp.id);
+                return (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    onClick={() => toggleSpeaker(sp.id)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition cursor-pointer ${
+                      selected
+                        ? 'bg-purple-600 border-purple-600 text-white'
+                        : 'bg-white dark:bg-[#150a21] border-slate-200 dark:border-purple-900/40 text-slate-700 dark:text-purple-200'
+                    }`}
+                  >
+                    {sp.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newSpeakerName}
+              onChange={(e) => setNewSpeakerName(e.target.value)}
+              placeholder={isRtl ? 'أضف متحدث جديد بالاسم...' : 'Add a new speaker by name...'}
+              className="flex-1 bg-slate-50 dark:bg-[#0b0712] border border-slate-200 dark:border-purple-900/40 rounded-xl py-2.5 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-purple-500 transition"
+            />
+            <button
+              type="button"
+              disabled={addingSpeaker || !newSpeakerName.trim()}
+              onClick={handleQuickAddSpeaker}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 disabled:opacity-50 cursor-pointer transition"
+            >
+              {isRtl ? 'إضافة' : 'Add'}
+            </button>
+          </div>
         </div>
 
         {/* Location */}

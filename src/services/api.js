@@ -101,8 +101,12 @@ export const api = {
   getSpeakers: () => request('/speakers', { auth: false }),
   getSpeakersByEvent: (eventId) => request(`/speakers/event/${eventId}`, { auth: false }),
   createSpeaker: (fields) => request('/speakers', { method: 'POST', body: fields }),
+  updateSpeaker: (id, fields) => request(`/speakers/${id}`, { method: 'PUT', body: fields }),
+  deleteSpeaker: (id) => request(`/speakers/${id}`, { method: 'DELETE' }),
   linkSpeakerToEvent: ({ event_id, speaker_id }) =>
     request('/speakers/link', { method: 'POST', body: { event_id, speaker_id } }),
+  unlinkSpeakerFromEvent: ({ event_id, speaker_id }) =>
+    request('/speakers/unlink', { method: 'POST', body: { event_id, speaker_id } }),
 
   // ---- Uploads ----
   uploadImage: async (file) => {

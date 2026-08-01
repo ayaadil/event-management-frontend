@@ -29,6 +29,7 @@ import MyEvents from './pages/MyEvents';
 import AdminUsers from './pages/admin/Users';
 import AdminCategories from './pages/admin/Categories';
 import AdminReports from './pages/admin/Reports';
+import AdminSpeakers from './pages/admin/Speakers';
 import ExploreEventsPage from './pages/Explore';
 
 export default function App() {
@@ -71,6 +72,9 @@ export default function App() {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/help" element={<Help />} />
+
+                  {/* Organizer + Admin route (page self-guards access) */}
+                  <Route path="/admin/speakers" element={<AdminSpeakers />} />
 
                   {/* Admin-only Routes */}
                   <Route element={<AdminRoute />}>

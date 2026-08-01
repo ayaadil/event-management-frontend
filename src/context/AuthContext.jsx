@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
   useAutoRefresh(() => {
     if (localStorage.getItem('token')) {
       refreshUser().catch((err) => {
-        if (err?.response?.status === 401) {
+        if (err?.status === 401) {
           logout();
         }
       });
